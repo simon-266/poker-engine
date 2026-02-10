@@ -4,12 +4,21 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+
 public class GameState {
+    @NotNull
     private final List<Player> players;
+    @NotNull
     private final List<Card> board;
+    @NotNull
     private final Pot pot;
+    @Min(0)
     private int dealerButtonPosition;
+    @Min(0)
     private int currentActionPosition;
+    @NotNull
     private GamePhase phase;
 
     private final java.util.Set<String> actedPlayers;

@@ -17,6 +17,14 @@ public class PokerEngineTest {
         public TestPlayer(String id, String name, int chips) {
             super(id, name, chips);
         }
+
+        @Override
+        public void onLeave() {
+        }
+
+        @Override
+        public void onHandEnded(Map<String, Integer> payouts) {
+        }
     }
 
     static class StackedDeck extends Deck {

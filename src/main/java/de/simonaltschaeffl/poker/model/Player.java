@@ -2,13 +2,24 @@ package de.simonaltschaeffl.poker.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public abstract class Player {
+    @NotBlank
     private final String id;
+    @NotBlank
     private final String name;
+    @Min(0)
     private int chips;
+    @NotNull
     private final List<Card> holeCards;
+    @NotNull
     private PlayerStatus status;
+    @Min(0)
     private int currentBet;
 
     public Player(String id, String name, int chips) {
@@ -75,4 +86,9 @@ public abstract class Player {
     public int getCurrentBet() {
         return currentBet;
     }
+
+    // Abstract Lifecycle Hooks
+    public abstract void onLeave();
+
+    public abstract void onHandEnded(Map<String, Integer> payouts);
 }

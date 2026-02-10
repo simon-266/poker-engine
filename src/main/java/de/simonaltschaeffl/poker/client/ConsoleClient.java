@@ -14,31 +14,43 @@ import java.util.stream.Collectors;
 
 public class ConsoleClient {
 
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_WHITE = "\u001B[37m";
+
     public static void main(String[] args) {
         new ConsoleClient().run();
     }
 
     public void run() {
-        System.out.println("Welcome to the Poker Engine Console Client!");
-
-        // 1. Setup
-        PokerGame game = new PokerGame(10, 20); // Standard Evaluator, Random Deck
-
-        Player p1 = new ConsolePlayer("p1", "Alice", 1000);
-        Player p2 = new ConsolePlayer("p2", "Bob", 1000);
-        Player p3 = new ConsolePlayer("p3", "Charlie", 1000); // 3-handed for more fun
-
-        game.join(p1);
-        game.join(p2);
-        game.join(p3);
-
-        game.addListener(new ConsoleGameLogger());
+        System.out.println(ANSI_GREEN + "Welcome to the Poker Engine Console Client!" + ANSI_RESET);
 
         try (Scanner scanner = new Scanner(System.in)) {
+            // 1. Setup
+            int numHumans = promptInt(scanner, "Enter number of human players: ");
+            int numBots = promptInt(scanner, "Enter number of bots: ");
+            int startChips = promptInt(scanner, "Enter starting chips (e.g. 1000): ");
+
+            PokerGame game = new PokerGame(10, 20); // Blinds 10/20
+            game.addListener(new ConsoleGameLogger());
+
+            for (int i = 1; i <= numHumans; i++) {
+                System.out.print("Enter name for Human " + i + ": ");
+                String name = scanner.nextLine().trim();
+                game.join(new ConsolePlayer("p" + i, name, startChips));
+            }
+
+            for (int i = 1; i <= numBots; i++) {
+                game.join(new BotPlayer("b" + i, "Bot " + i, startChips));
+            }
+
             boolean running = true;
 
             while (running) {
-                System.out.println("\n--- NEW HAND ---");
+                System.out.println("\n" + ANSI_YELLOW + "--- NEW HAND ---" + ANSI_RESET);
                 try {
                     game.startHand();
                 } catch (Exception e) {
@@ -52,37 +64,44 @@ public class ConsoleClient {
                     int currentPos = state.getCurrentActionPosition();
                     Player currentPlayer = state.getPlayers().get(currentPos);
 
-                    // Check if we need to skip (e.g. if player is All-in/Folded? Engine should
-                    // handle skip,
-                    // but let's be safe. Engine's getCurrentActionPosition should point to ACTIVE
-                    // player.)
+                    if (currentPlayer instanceof BotPlayer bot) {
+                        // Bot Logic
+                        System.out.println(ANSI_BLUE + "Bot " + bot.getName() + " is thinking..." + ANSI_RESET);
+                        bot.decide(game);
+                    } else {
+                        // Human Logic
+                        printTableStatus(state);
+                        System.out.printf(
+                                ANSI_GREEN + "Action needed from: %s (%s) [Chips: %d, CurrentBet: %d]\n" + ANSI_RESET,
+                                currentPlayer.getName(), currentPlayer.getId(), currentPlayer.getChips(),
+                                currentPlayer.getCurrentBet());
 
-                    System.out.printf("\n[Phase: %s] | Pot: %d | Board: %s\n",
-                            state.getPhase(),
-                            state.getPot().getTotal(),
-                            formatCards(state.getBoard()));
+                        System.out.printf("Your hand: %s\n", formatCards(currentPlayer.getHoleCards()));
 
-                    System.out.printf("Action needed from: %s (%s) [Chips: %d, CurrentBet: %d]\n",
-                            currentPlayer.getName(), currentPlayer.getId(), currentPlayer.getChips(),
-                            currentPlayer.getCurrentBet());
+                        System.out.print("> ");
+                        String input = scanner.nextLine().trim();
 
-                    System.out.printf("Your hand: %s\n", formatCards(currentPlayer.getHoleCards()));
+                        if (input.equalsIgnoreCase("quit") || input.equalsIgnoreCase("exit")) {
+                            running = false;
+                            break;
+                        }
 
-                    System.out.print("> ");
-                    String input = scanner.nextLine().trim();
-
-                    if (input.equalsIgnoreCase("quit") || input.equalsIgnoreCase("exit")) {
-                        running = false;
-                        break;
+                        try {
+                            processInput(game, currentPlayer.getId(), input);
+                        } catch (IllegalArgumentException | IllegalStateException e) {
+                            System.out.println(ANSI_RED + "Action Failed: " + e.getMessage() + ANSI_RESET);
+                        } catch (Exception e) {
+                            System.out.println(ANSI_RED + "Error: " + e.getMessage() + ANSI_RESET);
+                            e.printStackTrace();
+                        }
                     }
 
-                    try {
-                        processInput(game, currentPlayer.getId(), input);
-                    } catch (IllegalArgumentException | IllegalStateException e) {
-                        System.out.println("Creating Action Failed: " + e.getMessage());
-                    } catch (Exception e) {
-                        System.out.println("Error: " + e.getMessage());
-                        e.printStackTrace();
+                    // Small delay to make it readable if bots are playing
+                    if (currentPlayer instanceof BotPlayer) {
+                        try {
+                            Thread.sleep(500);
+                        } catch (Exception e) {
+                        }
                     }
                 }
 
@@ -96,12 +115,26 @@ public class ConsoleClient {
                 }
             }
         }
-
         System.out.println("Goodbye!");
+    }
+
+    private int promptInt(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine();
+            try {
+                return Integer.parseInt(input.trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number.");
+            }
+        }
     }
 
     private void processInput(PokerGame game, String playerId, String input) {
         String[] parts = input.split("\\s+");
+        if (parts.length == 0 || parts[0].isEmpty())
+            return;
+
         String command = parts[0].toLowerCase();
 
         switch (command) {
@@ -116,12 +149,18 @@ public class ConsoleClient {
                 int amount = Integer.parseInt(parts[1]);
                 game.performAction(playerId, ActionType.RAISE, amount);
             }
-            case "allin" -> game.performAction(playerId, ActionType.ALL_IN, 0); // Amount ignored for All-IN usually?
-                                                                                // Logic says player.getChips()
+            case "allin" -> game.performAction(playerId, ActionType.ALL_IN, 0);
             case "state" -> printDebugState(game);
             case "help" -> System.out.println("Commands: fold, check, call, raise <amount>, allin, state, quit");
             default -> System.out.println("Unknown command. Type 'help' for options.");
         }
+    }
+
+    private void printTableStatus(GameState state) {
+        System.out.printf("\n[Phase: %s] | Pot: %d | Board: %s\n",
+                state.getPhase(),
+                state.getPot().getTotal(),
+                formatCards(state.getBoard()));
     }
 
     private void printDebugState(PokerGame game) {
@@ -136,7 +175,17 @@ public class ConsoleClient {
     private String formatCards(List<Card> cards) {
         if (cards == null || cards.isEmpty())
             return "[]";
-        return cards.stream().map(Object::toString).collect(Collectors.joining(" "));
+        return cards.stream().map(this::colorCard).collect(Collectors.joining(" "));
+    }
+
+    private String colorCard(Card c) {
+        String suitDetails = switch (c.suit()) {
+            case HEARTS -> ANSI_RED + c.toString() + ANSI_RESET;
+            case DIAMONDS -> ANSI_RED + c.toString() + ANSI_RESET; // Use Red for Diamonds too
+            case CLUBS -> ANSI_WHITE + c.toString() + ANSI_RESET;
+            case SPADES -> ANSI_WHITE + c.toString() + ANSI_RESET;
+        };
+        return suitDetails;
     }
 
     // Inner class for logging

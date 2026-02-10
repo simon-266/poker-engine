@@ -5,7 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.validation.constraints.NotNull;
+
 public class Deck {
+    @NotNull
     private final List<Card> cards;
 
     public Deck() {

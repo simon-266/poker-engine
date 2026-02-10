@@ -1,6 +1,8 @@
 package de.simonaltschaeffl.poker.model;
 
-public record Card(Rank rank, Suit suit) implements Comparable<Card> {
+import jakarta.validation.constraints.NotNull;
+
+public record Card(@NotNull Rank rank, @NotNull Suit suit) implements Comparable<Card> {
 
     @Override
     public String toString() {

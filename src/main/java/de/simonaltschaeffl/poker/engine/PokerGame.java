@@ -15,12 +15,14 @@ public class PokerGame {
     private final List<GameEventListener> listeners;
     private final int smallBlind;
     private final int bigBlind;
+    private final List<Player> waitingPlayers;
 
     public PokerGame(int smallBlind, int bigBlind, HandEvaluator handEvaluator, Deck deck) {
         this.gameState = new GameState();
         this.deck = deck;
         this.handEvaluator = handEvaluator;
         this.listeners = new ArrayList<>();
+        this.waitingPlayers = new ArrayList<>();
         this.smallBlind = smallBlind;
         this.bigBlind = bigBlind;
     }
@@ -35,11 +37,77 @@ public class PokerGame {
     }
 
     public void join(Player player) {
-        gameState.addPlayer(player);
+        if (gameState.getPhase() == GameState.GamePhase.PRE_GAME) {
+            if (gameState.getPlayers().size() >= 10) {
+                throw new IllegalStateException("Game is full (max 10 players)");
+            }
+            gameState.addPlayer(player);
+        } else {
+            // Check total count (current + waiting)
+            int total = gameState.getPlayers().size() + waitingPlayers.size();
+            if (total >= 10) {
+                throw new IllegalStateException("Game is full (max 10 players)");
+            }
+            if (!gameState.getPlayers().contains(player) && !waitingPlayers.contains(player)) {
+                waitingPlayers.add(player);
+                System.out.println("Player " + player.getName() + " added to waiting list.");
+            }
+        }
+    }
+
+    public void leave(Player player) {
+        if (waitingPlayers.remove(player)) {
+            player.onLeave();
+            return; // Was only waiting
+        }
+
+        if (gameState.getPlayers().contains(player)) {
+            if (gameState.getPhase() == GameState.GamePhase.PRE_GAME ||
+                    gameState.getPhase() == GameState.GamePhase.HAND_ENDED) {
+                gameState.removePlayer(player);
+                player.onLeave();
+            } else {
+                // Active game
+                player.setStatus(PlayerStatus.LEFT);
+                player.onLeave();
+
+                // If it was their turn, act to unblock
+                Player activePlayer = gameState.getPlayers().get(gameState.getCurrentActionPosition());
+                if (activePlayer.equals(player)) {
+                    performAction(player.getId(), ActionType.FOLD, 0);
+                }
+                // Actually performAction(FOLD) sets status to FOLDED.
+                // We want LEFT to persist so we can remove them later?
+                // But performAction sets FOLDED.
+                // Let's refine performAction to override validation if we are calling it
+                // internally?
+                // Or just let them be FOLDED for the rest of the hand, and check status
+                // LEFT/FOLDED when removing.
+                // But if we set LEFT before calling FOLD, FOLD execution sets FOLDED.
+                // So we should call FOLD first, then set LEAVE?
+                // If we call FOLD, they become FOLDED.
+                // We need a flag or just check if they are in 'leaving' state.
+                // Simplest: Check 'leave' calls.
+                // Let's trust startHand to remove players who are 'LEFT'.
+                // Problem: performAction sets FOLDED.
+
+                // Strategy:
+                // 1. If active, FOLD.
+                // 2. Set status LEFT (overwriting FOLDED).
+            }
+        }
     }
 
     public GameState getGameState() {
         return gameState;
+    }
+
+    public int getSmallBlind() {
+        return smallBlind;
+    }
+
+    public int getBigBlind() {
+        return bigBlind;
     }
 
     public void addListener(GameEventListener listener) {
@@ -49,6 +117,28 @@ public class PokerGame {
     public void startHand() {
         if (gameState.getPlayers().size() < 2) {
             throw new IllegalStateException("Not enough players");
+        }
+
+        // 0. Process Joins and Leaves
+        // Remove LEFT players
+        List<Player> toRemove = new ArrayList<>();
+        for (Player p : gameState.getPlayers()) {
+            if (p.getStatus() == PlayerStatus.LEFT) {
+                toRemove.add(p);
+            }
+        }
+        toRemove.forEach(gameState::removePlayer);
+
+        // Add Waiting Players
+        while (!waitingPlayers.isEmpty() && gameState.getPlayers().size() < 10) {
+            gameState.addPlayer(waitingPlayers.remove(0));
+        }
+
+        if (gameState.getPlayers().size() < 2) {
+            // Not enough players to start/continue
+            // notify?
+            gameState.setPhase(GameState.GamePhase.PRE_GAME);
+            return; // Logic loop break?
         }
 
         notifyGameStarted(); // Or notifyHandStarted if tracking per hand
@@ -136,7 +226,9 @@ public class PokerGame {
 
         switch (type) {
             case FOLD -> {
-                player.setStatus(PlayerStatus.FOLDED);
+                if (player.getStatus() != PlayerStatus.LEFT) {
+                    player.setStatus(PlayerStatus.FOLDED);
+                }
             }
             case CHECK -> {
                 int highestBet = getHighestRoundBet();
@@ -260,9 +352,15 @@ public class PokerGame {
 
     private void transitionPhase() {
         // Check if only one player left (Win by Fold)
-        long activeCount = gameState.getPlayers().stream().filter(p -> p.getStatus() != PlayerStatus.FOLDED).count();
+        // Count players who are NOT (Folded OR Left OR Sitting Out) -> Effectively
+        // ACTIVE or ALL_IN
+        long activeCount = gameState.getPlayers().stream()
+                .filter(p -> p.getStatus() == PlayerStatus.ACTIVE || p.getStatus() == PlayerStatus.ALL_IN)
+                .count();
+
         if (activeCount == 1) {
-            Player winner = gameState.getPlayers().stream().filter(p -> p.getStatus() != PlayerStatus.FOLDED)
+            Player winner = gameState.getPlayers().stream()
+                    .filter(p -> p.getStatus() == PlayerStatus.ACTIVE || p.getStatus() == PlayerStatus.ALL_IN)
                     .findFirst().get();
             handleWinByFold(winner);
             return;
@@ -320,7 +418,8 @@ public class PokerGame {
     private void handleShowdown() {
         // Advanced Showdown Logic for Side Pots & Split Pots
         List<Player> showdownPlayers = gameState.getPlayers().stream()
-                .filter(p -> p.getStatus() != PlayerStatus.FOLDED)
+                .filter(p -> p.getStatus() != PlayerStatus.FOLDED && p.getStatus() != PlayerStatus.LEFT
+                        && p.getStatus() != PlayerStatus.SITTING_OUT)
                 .collect(java.util.stream.Collectors.toList());
 
         // 2. Evaluate all hands
