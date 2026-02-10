@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.1" name="de.simonaltschaeffl.poker.JoinLeaveTest" time="0.02" tests="5" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.1" name="de.simonaltschaeffl.poker.WaitingListTest" time="0.073" tests="1" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="25"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -7,7 +7,6 @@
     <property name="java.vm.vendor" value="Arch Linux"/>
     <property name="sun.arch.data.model" value="64"/>
     <property name="java.vendor.url" value="https://openjdk.org/"/>
-    <property name="user.timezone" value="Europe/Berlin"/>
     <property name="os.name" value="Linux"/>
     <property name="java.vm.specification.version" value="25"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
@@ -55,9 +54,5 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="69.0"/>
   </properties>
-  <testcase name="testDTO" classname="de.simonaltschaeffl.poker.JoinLeaveTest" time="0.003"/>
-  <testcase name="testMaxPlayers" classname="de.simonaltschaeffl.poker.JoinLeaveTest" time="0.003"/>
-  <testcase name="testLeaveDuringGame" classname="de.simonaltschaeffl.poker.JoinLeaveTest" time="0.006"/>
-  <testcase name="testJoinDuringGame" classname="de.simonaltschaeffl.poker.JoinLeaveTest" time="0.002"/>
-  <testcase name="testJoinBeforeGame" classname="de.simonaltschaeffl.poker.JoinLeaveTest" time="0.0"/>
+  <testcase name="testPlayerJoinedWaitingListEvent" classname="de.simonaltschaeffl.poker.WaitingListTest" time="0.043"/>
 </testsuite>

@@ -5,9 +5,9 @@ de/simonaltschaeffl/poker/PokerEngineTest$TestPlayer.class
 de/simonaltschaeffl/poker/DomainValidationTest$TestPlayer.class
 de/simonaltschaeffl/poker/JoinLeaveTest$TestPlayer.class
 de/simonaltschaeffl/poker/AppTest.class
-de/simonaltschaeffl/poker/PokerEngineTest$StackedDeck.class
 de/simonaltschaeffl/poker/client/ConsoleClient$ConsoleGameLogger.class
 de/simonaltschaeffl/poker/client/ConsoleClient$1.class
+de/simonaltschaeffl/poker/PokerEngineTest$StackedDeck.class
 de/simonaltschaeffl/poker/client/ConsoleClient.class
 de/simonaltschaeffl/poker/client/ConsolePlayer.class
 de/simonaltschaeffl/poker/client/BotPlayer.class

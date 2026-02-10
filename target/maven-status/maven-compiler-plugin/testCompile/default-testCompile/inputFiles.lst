@@ -3,6 +3,7 @@
 /home/simon/development/casino/poker-engine/src/test/java/de/simonaltschaeffl/poker/DomainValidationTest.java
 /home/simon/development/casino/poker-engine/src/test/java/de/simonaltschaeffl/poker/JoinLeaveTest.java
 /home/simon/development/casino/poker-engine/src/test/java/de/simonaltschaeffl/poker/PokerEngineTest.java
+/home/simon/development/casino/poker-engine/src/test/java/de/simonaltschaeffl/poker/WaitingListTest.java
 /home/simon/development/casino/poker-engine/src/test/java/de/simonaltschaeffl/poker/client/BotPlayer.java
 /home/simon/development/casino/poker-engine/src/test/java/de/simonaltschaeffl/poker/client/ConsoleClient.java
 /home/simon/development/casino/poker-engine/src/test/java/de/simonaltschaeffl/poker/client/ConsolePlayer.java

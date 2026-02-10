@@ -50,7 +50,7 @@ public class PokerGame {
             }
             if (!gameState.getPlayers().contains(player) && !waitingPlayers.contains(player)) {
                 waitingPlayers.add(player);
-                System.out.println("Player " + player.getName() + " added to waiting list.");
+                notifyPlayerJoinedWaitingList(player);
             }
         }
     }
@@ -573,5 +573,9 @@ public class PokerGame {
 
     private void notifyPotUpdate(int total) {
         listeners.forEach(l -> l.onPotUpdate(total));
+    }
+
+    private void notifyPlayerJoinedWaitingList(Player player) {
+        listeners.forEach(l -> l.onPlayerJoinedWaitingList(player));
     }
 }

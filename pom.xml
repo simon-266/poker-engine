@@ -8,8 +8,13 @@
   <version>1.0</version>
 
   <name>poker-engine</name>
-  <!-- FIXME change it to the project's website -->
   <url>https://github.com/simon-266/poker-engine</url>
+
+  <developers>
+    <developer>
+      <email>info@simonaltschaeffl.de</email>
+    </developer>
+  </developers>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

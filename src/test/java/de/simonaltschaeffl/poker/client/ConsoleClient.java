@@ -223,5 +223,10 @@ public class ConsoleClient {
             }
             System.out.println();
         }
+
+        @Override
+        public void onPlayerJoinedWaitingList(Player player) {
+            System.out.println("Player " + player.getName() + " added to waiting list.");
+        }
     }
 }

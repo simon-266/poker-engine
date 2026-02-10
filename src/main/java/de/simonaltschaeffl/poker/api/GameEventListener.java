@@ -45,4 +45,11 @@ public interface GameEventListener {
      * @param payoutMap Map of Player ID to amount won.
      */
     void onHandEnded(List<Player> winners, Map<String, Integer> payoutMap);
+
+    /**
+     * Called when a player is added to the waiting list.
+     * 
+     * @param player The player who joined the waiting list.
+     */
+    void onPlayerJoinedWaitingList(Player player);
 }
