@@ -23,7 +23,7 @@ mvn clean install
 ### Run CLI Client
 A built-in command-line client is available for manual interaction and testing.
 ```bash
-mvn exec:java -Dexec.mainClass="de.simonaltschaeffl.poker.App"
+mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="de.simonaltschaeffl.poker.client.ConsoleClient"
 ```
 
 ---
@@ -103,7 +103,7 @@ The included Console Client allows you to simulate a game between 3 players (`p1
 
 ### How to Run
 ```bash
-mvn exec:java -Dexec.mainClass="de.simonaltschaeffl.poker.App"
+mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="de.simonaltschaeffl.poker.client.ConsoleClient"
 ```
 
 ### Commands

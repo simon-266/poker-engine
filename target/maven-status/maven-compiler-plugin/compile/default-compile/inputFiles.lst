@@ -1,8 +1,4 @@
-/home/simon/development/casino/poker-engine/src/main/java/de/simonaltschaeffl/poker/App.java
 /home/simon/development/casino/poker-engine/src/main/java/de/simonaltschaeffl/poker/api/GameEventListener.java
-/home/simon/development/casino/poker-engine/src/main/java/de/simonaltschaeffl/poker/client/BotPlayer.java
-/home/simon/development/casino/poker-engine/src/main/java/de/simonaltschaeffl/poker/client/ConsoleClient.java
-/home/simon/development/casino/poker-engine/src/main/java/de/simonaltschaeffl/poker/client/ConsolePlayer.java
 /home/simon/development/casino/poker-engine/src/main/java/de/simonaltschaeffl/poker/dto/CardDTO.java
 /home/simon/development/casino/poker-engine/src/main/java/de/simonaltschaeffl/poker/dto/GameStateDTO.java
 /home/simon/development/casino/poker-engine/src/main/java/de/simonaltschaeffl/poker/dto/PlayerDTO.java
