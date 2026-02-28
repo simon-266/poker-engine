@@ -7,6 +7,8 @@ import java.util.Map;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import de.simonaltschaeffl.poker.exception.InsufficientChipsException;
+import de.simonaltschaeffl.poker.exception.TooManyHoleCardsException;
 
 public abstract class Player {
     @NotBlank
@@ -33,7 +35,7 @@ public abstract class Player {
 
     public void addHoleCard(Card card) {
         if (holeCards.size() >= 2) {
-            throw new IllegalStateException("Player already has 2 hole cards");
+            throw new TooManyHoleCardsException("Player already has 2 hole cards");
         }
         holeCards.add(card);
     }
@@ -48,7 +50,7 @@ public abstract class Player {
 
     public void bet(int amount) {
         if (amount > chips) {
-            throw new IllegalArgumentException("Not enough chips");
+            throw new InsufficientChipsException("Not enough chips");
         }
         chips -= amount;
         currentBet += amount;

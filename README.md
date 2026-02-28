@@ -6,8 +6,11 @@ A robust, Java-based Poker Engine for Texas Hold'em. This engine handles the cor
 - **Texas Hold'em Logic**: Pre-flop, Flop, Turn, River, Showdown.
 - **Hand Evaluation**: Uses a high-performance evaluator (Cactus Kev variant) to determine hand strength.
 - **Side Pots**: Correctly calculates main and side pots for multi-way all-in scenarios.
+- **Modular Configuration**: Code-based configuration via Builder pattern.
+- **Time Bank**: Configurable turn timeouts with auto-fold/check.
+- **Rake System**: Pluggable strategies for house commission (Rake).
 - **Event Driven**: Emits events (`onPlayerAction`, `onRoundStarted`, etc.) for easy UI or Logger integration.
-- **Flexible**: Supports custom decks and hand evaluators for testing.
+- **Flexible**: Supports custom decks, betting rules, and hand evaluators for testing.
 
 ## Getting Started
 
@@ -32,12 +35,22 @@ mvn exec:java -Dexec.classpathScope=test -Dexec.mainClass="de.simonaltschaeffl.p
 
 ### Core Concepts
 
-#### 1. PokerGame
-The main entry point. It manages the `GameState` and the flow of the game.
+#### 1. PokerGame & Configuration
+The main entry point. It manages the `GameState` and the flow of the game. Configure it using `PokerGameConfiguration`.
 
 ```java
-// Initialize with Small Blind: 10, Big Blind: 20
-PokerGame game = new PokerGame(10, 20);
+// Configure the game
+PokerGameConfiguration config = new PokerGameConfiguration.Builder()
+    .smallBlind(10)
+    .bigBlind(20)
+    .maxPlayers(10)
+    .actionTimeoutMs(15000) // 15 seconds time bank
+    .rakeStrategy(new PercentageRakeStrategy(0.05, 60)) // 5% rake, capped at 3 BB
+    .bettingRuleStrategy(new NoLimitBettingStrategy())
+    .build();
+
+// Initialize the game
+PokerGame game = new PokerGame(config);
 
 // Join Players
 game.join(new ConsolePlayer("p1", "Alice", 1000));
@@ -46,6 +59,8 @@ game.join(new ConsolePlayer("p2", "Bob", 1000));
 // Start a Hand
 game.startHand();
 ```
+
+If you are using the Time Bank feature, your backend application should periodically call `game.checkTimeouts()` (e.g. every second) to enforce the time limits.
 
 #### 2. Player
 Extend the strict `Player` abstract class to create your own player types (e.g., `BotPlayer`, `NetworkPlayer`).

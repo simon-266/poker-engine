@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: de.simonaltschaeffl.poker.PokerEngineTest
 -------------------------------------------------------------------------------
-Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s -- in de.simonaltschaeffl.poker.PokerEngineTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.020 s -- in de.simonaltschaeffl.poker.PokerEngineTest

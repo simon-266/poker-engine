@@ -4,7 +4,9 @@ import de.simonaltschaeffl.poker.engine.PokerGame;
 import de.simonaltschaeffl.poker.model.Player;
 import de.simonaltschaeffl.poker.model.PlayerStatus;
 import de.simonaltschaeffl.poker.dto.GameStateDTO;
+import de.simonaltschaeffl.poker.engine.PokerGameConfiguration;
 import de.simonaltschaeffl.poker.model.ActionType;
+import de.simonaltschaeffl.poker.exception.GameFullException;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,8 +30,9 @@ public class JoinLeaveTest {
     }
 
     @Test
-    public void testJoinBeforeGame() {
-        PokerGame game = new PokerGame(10, 20);
+    public void testJoinGame() {
+        PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
+        PokerGame game = new PokerGame(config);
         TestPlayer p1 = new TestPlayer("p1", "P1", 1000);
         game.join(p1);
 
@@ -39,21 +42,23 @@ public class JoinLeaveTest {
 
     @Test
     public void testMaxPlayers() {
-        PokerGame game = new PokerGame(10, 20);
+        PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
+        PokerGame game = new PokerGame(config);
         for (int i = 0; i < 10; i++) {
             game.join(new TestPlayer("p" + i, "P" + i, 1000));
         }
 
         assertEquals(10, game.getGameState().getPlayers().size());
 
-        assertThrows(IllegalStateException.class, () -> {
+        assertThrows(GameFullException.class, () -> {
             game.join(new TestPlayer("p11", "P11", 1000));
         });
     }
 
     @Test
     public void testJoinDuringGame() {
-        PokerGame game = new PokerGame(10, 20);
+        PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
+        PokerGame game = new PokerGame(config);
         TestPlayer p1 = new TestPlayer("p1", "P1", 1000);
         TestPlayer p2 = new TestPlayer("p2", "P2", 1000);
         game.join(p1);
@@ -79,8 +84,9 @@ public class JoinLeaveTest {
     }
 
     @Test
-    public void testLeaveDuringGame() {
-        PokerGame game = new PokerGame(10, 20);
+    public void testLeaveGameDuringHand() {
+        PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
+        PokerGame game = new PokerGame(config);
         TestPlayer p1 = new TestPlayer("p1", "P1", 1000);
         TestPlayer p2 = new TestPlayer("p2", "P2", 1000);
         game.join(p1);
@@ -133,7 +139,8 @@ public class JoinLeaveTest {
 
     @Test
     public void testDTO() {
-        PokerGame game = new PokerGame(10, 20);
+        PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
+        PokerGame game = new PokerGame(config);
         TestPlayer p1 = new TestPlayer("p1", "P1", 1000);
         game.join(p1);
 

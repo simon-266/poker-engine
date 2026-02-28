@@ -7,6 +7,11 @@ import de.simonaltschaeffl.poker.model.HandResult;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * An implementation of the HandEvaluator interface using a variant of the
+ * Cactus Kev evaluator algorithm. It maps 5-card hands to unique integers
+ * to quickly determine their poker hand rank.
+ */
 public class CactusKevEvaluator implements HandEvaluator {
 
     // Lookup tables
@@ -17,7 +22,13 @@ public class CactusKevEvaluator implements HandEvaluator {
         generateLookups();
     }
 
-    // Core Evaluation of 5 cards (passed as ints)
+    /**
+     * Evaluates a 5-card hand and returns its strength score.
+     * Lower scores indicate stronger hands.
+     *
+     * @param c an array of 5 integers representing the cards in Cactus Kev's format
+     * @return a short value representing the numerical strength of the hand
+     */
     public short eval5(int[] c) {
         int q = (c[0] | c[1] | c[2] | c[3] | c[4]) >> 16;
         short s;
@@ -31,6 +42,15 @@ public class CactusKevEvaluator implements HandEvaluator {
         return s;
     }
 
+    /**
+     * Evaluates the best possible 5-card hand from a combination of hole cards and
+     * community cards.
+     * Evaluates all 21 possible combinations of 5 cards out of 7.
+     *
+     * @param holeCards      the player's private cards (usually 2)
+     * @param communityCards the shared community cards (up to 5)
+     * @return a HandResult object representing the best 5-card hand and its rank
+     */
     @Override
     public HandResult evaluate(List<Card> holeCards, List<Card> communityCards) {
         List<Card> sevenCards = new ArrayList<>();
@@ -38,7 +58,13 @@ public class CactusKevEvaluator implements HandEvaluator {
         sevenCards.addAll(communityCards);
 
         // Iterate 21 combinations
-        int[] pool = sevenCards.stream().mapToInt(CactusKevCommon::toInt).toArray();
+        // PERFORMANCE-FIX: Ersetze Stream durch klassische for-Schleife für
+        // pool-Initialisierung
+        int[] pool = new int[sevenCards.size()];
+        for (int i = 0; i < sevenCards.size(); i++) {
+            pool[i] = CactusKevCommon.toInt(sevenCards.get(i));
+        }
+
         short bestScore = Short.MAX_VALUE;
         int[] bestHandInts = new int[5];
 
@@ -47,8 +73,10 @@ public class CactusKevEvaluator implements HandEvaluator {
         int k = 5;
         int[] indices = { 0, 1, 2, 3, 4 };
 
+        // PERFORMANCE-FIX: Vermeide ständige Array-Allokation in der Schleife
+        int[] hand = new int[5];
+
         while (true) {
-            int[] hand = new int[5];
             for (int i = 0; i < 5; i++)
                 hand[i] = pool[indices[i]];
 
@@ -98,15 +126,17 @@ public class CactusKevEvaluator implements HandEvaluator {
             rank = HandRank.HIGH_CARD;
 
         // Reconstruct bestFive cards
-        List<Card> bestFive = new ArrayList<>();
+        List<Card> bestFive = new ArrayList<>(5);
+        // PERFORMANCE-FIX: Verwende boolean-Array statt teurem contains-Check (O(N))
+        boolean[] used = new boolean[sevenCards.size()];
         for (int ckInt : bestHandInts) {
             // Find the original card in sevenCards that matches this ckInt
-            for (Card c : sevenCards) {
-                if (CactusKevCommon.toInt(c) == ckInt) {
-                    if (!bestFive.contains(c)) { // Avoid duplicates if deck had errors (unlikely)
-                        bestFive.add(c);
-                        break;
-                    }
+            for (int i = 0; i < sevenCards.size(); i++) {
+                Card c = sevenCards.get(i);
+                if (!used[i] && CactusKevCommon.toInt(c) == ckInt) {
+                    used[i] = true;
+                    bestFive.add(c);
+                    break;
                 }
             }
         }

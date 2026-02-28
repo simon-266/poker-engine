@@ -7,9 +7,17 @@ import de.simonaltschaeffl.poker.model.GameState;
 import de.simonaltschaeffl.poker.model.Player;
 import de.simonaltschaeffl.poker.model.PlayerStatus;
 import de.simonaltschaeffl.poker.service.PayoutCalculator;
+import de.simonaltschaeffl.poker.exception.NotEnoughPlayersException;
+import de.simonaltschaeffl.poker.exception.HandIsOverException;
 
 import java.util.List;
 
+/**
+ * Manages the lifecycle and phases of a single poker round (hand).
+ * Handles dealing cards, managing community cards, posting blinds, and
+ * transitioning through the game phases
+ * (PRE_FLOP, FLOP, TURN, RIVER, SHOWDOWN).
+ */
 public class RoundLifecycle {
     private final GameState gameState;
     private final Deck deck;
@@ -36,9 +44,18 @@ public class RoundLifecycle {
         this.bigBlind = bigBlind;
     }
 
+    /**
+     * Starts a new hand. This initializes the deck, clears the board, deals hole
+     * cards,
+     * posts small and big blinds, and transitions to the PRE_FLOP phase.
+     * Will transition back to PRE_GAME if there are not enough players left.
+     *
+     * @throws IllegalStateException if there are less than 2 players before
+     *                               attempting to start
+     */
     public void startHand() {
         if (gameState.getPlayers().size() < 2) {
-            throw new IllegalStateException("Not enough players");
+            throw new NotEnoughPlayersException("Not enough players");
         }
 
         // 0. Process Joins and Leaves
@@ -84,23 +101,36 @@ public class RoundLifecycle {
 
         // Action starts left of BB
         gameState.clearActedPlayers();
-        if (numPlayers == 2) {
-            gameState.setCurrentActionPosition(sbPos);
-        } else {
-            gameState.setCurrentActionPosition((bbPos + 1) % numPlayers);
-        }
+        int firstActionPos = (numPlayers == 2) ? sbPos : (bbPos + 1) % numPlayers;
+        gameState.setCurrentActionPosition(firstActionPos);
+
+        notifyGameStateChanged();
+        notifyPlayerTurn(gameState.getPlayers().get(firstActionPos));
     }
 
+    /**
+     * Evaluates the current game state to transition to the next game phase.
+     * If only one player is active (others folded), it awards the pot to the
+     * winner.
+     * Otherwise, deals the appropriate community cards (Flop/Turn/River) and resets
+     * betting.
+     */
     public void transitionPhase() {
         // Check Win by Fold
-        long activeCount = gameState.getPlayers().stream()
-                .filter(p -> p.getStatus() == PlayerStatus.ACTIVE || p.getStatus() == PlayerStatus.ALL_IN)
-                .count();
+        // PERFORMANCE-FIX: Ersetze Stream durch klassische for-Schleife und suche
+        // Gewinner gleichzeitig
+        long activeCount = 0;
+        Player winner = null;
+        for (Player p : gameState.getPlayers()) {
+            if (p.getStatus() == PlayerStatus.ACTIVE || p.getStatus() == PlayerStatus.ALL_IN) {
+                activeCount++;
+                if (winner == null) {
+                    winner = p;
+                }
+            }
+        }
 
         if (activeCount == 1) {
-            Player winner = gameState.getPlayers().stream()
-                    .filter(p -> p.getStatus() == PlayerStatus.ACTIVE || p.getStatus() == PlayerStatus.ALL_IN)
-                    .findFirst().orElseThrow();
             handleWinByFold(winner);
             return;
         }
@@ -141,10 +171,21 @@ public class RoundLifecycle {
             }
             case SHOWDOWN, HAND_ENDED -> {
             }
-            case PRE_GAME -> throw new IllegalStateException("Cannot transition from PRE_GAME without startHand()");
+            case PRE_GAME -> throw new HandIsOverException("Cannot transition from PRE_GAME without startHand()");
+        }
+        notifyGameStateChanged();
+        if (gameState.getPhase() != GameState.GamePhase.SHOWDOWN
+                && gameState.getPhase() != GameState.GamePhase.HAND_ENDED) {
+            notifyPlayerTurn(gameState.getPlayers().get(gameState.getCurrentActionPosition()));
         }
     }
 
+    /**
+     * Advances the game logic. If the betting round is complete according to the
+     * RuleEngine,
+     * the game transitions to the next phase. Otherwise, it moves the action to the
+     * next active player.
+     */
     public void advanceGame() {
         if (ruleEngine.isRoundComplete(gameState)) {
             transitionPhase();
@@ -164,12 +205,17 @@ public class RoundLifecycle {
             attempts++;
         }
         gameState.setCurrentActionPosition(nextIdx);
+        notifyPlayerTurn(gameState.getPlayers().get(nextIdx));
     }
 
     private void checkAutoAdvance() {
-        long activeCount = gameState.getPlayers().stream()
-                .filter(p -> p.getStatus() == PlayerStatus.ACTIVE)
-                .count();
+        // PERFORMANCE-FIX: Ersetze Stream durch klassische for-Schleife
+        long activeCount = 0;
+        for (Player p : gameState.getPlayers()) {
+            if (p.getStatus() == PlayerStatus.ACTIVE) {
+                activeCount++;
+            }
+        }
         if (activeCount <= 1) {
             transitionPhase();
         }
@@ -208,5 +254,14 @@ public class RoundLifecycle {
 
     private void notifyHandEnded(List<Player> winners, java.util.Map<String, Integer> payouts) {
         listeners.forEach(l -> l.onHandEnded(winners, payouts));
+    }
+
+    private void notifyGameStateChanged() {
+        listeners.forEach(l -> l.onGameStateChanged(gameState));
+    }
+
+    private void notifyPlayerTurn(Player player) {
+        gameState.setCurrentTurnStartTime(System.currentTimeMillis());
+        listeners.forEach(l -> l.onPlayerTurn(player, ruleEngine.getAllowedActions(player, gameState)));
     }
 }

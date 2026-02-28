@@ -4,10 +4,18 @@ import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.model.*;
 import de.simonaltschaeffl.poker.service.HandEvaluator;
 import de.simonaltschaeffl.poker.service.StandardHandEvaluator;
+import de.simonaltschaeffl.poker.engine.component.TimeoutManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The main facade and entry point for the Poker Engine.
+ * Manages the {@link GameState}, players, and overall flow of a Texas Hold'em
+ * game.
+ * Designed to be modular and configurable via {@link PokerGameConfiguration}.
+ * Emits events to registered {@link GameEventListener}s.
+ */
 public class PokerGame {
     private final GameState gameState;
 
@@ -15,36 +23,81 @@ public class PokerGame {
     private final int smallBlind;
     private final int bigBlind;
 
+    private final PokerGameConfiguration config;
     private final de.simonaltschaeffl.poker.engine.component.TableManager tableManager;
     private final de.simonaltschaeffl.poker.engine.component.RuleEngine ruleEngine;
     private final de.simonaltschaeffl.poker.engine.component.ActionHandler actionHandler;
     private final de.simonaltschaeffl.poker.engine.component.RoundLifecycle roundLifecycle;
+    private final TimeoutManager timeoutManager;
 
-    public PokerGame(int smallBlind, int bigBlind, HandEvaluator handEvaluator, Deck deck) {
+    /**
+     * Constructs a new PokerGame with the specified configuration, hand evaluator,
+     * and deck.
+     *
+     * @param config        The game configuration (blinds, maximum players,
+     *                      timeouts, strategies).
+     * @param handEvaluator The evaluator to use for determining hand strengths at
+     *                      showdown.
+     * @param deck          The deck to use for dealing cards.
+     */
+    public PokerGame(PokerGameConfiguration config, HandEvaluator handEvaluator, Deck deck) {
         this.gameState = new GameState();
         this.listeners = new ArrayList<>();
-        this.smallBlind = smallBlind;
-        this.bigBlind = bigBlind;
+        this.config = config;
+        this.smallBlind = config.getSmallBlind();
+        this.bigBlind = config.getBigBlind();
 
         de.simonaltschaeffl.poker.service.PayoutCalculator payoutCalculator = new de.simonaltschaeffl.poker.service.PayoutCalculator(
-                handEvaluator);
-        this.tableManager = new de.simonaltschaeffl.poker.engine.component.TableManager(listeners);
-        this.ruleEngine = new de.simonaltschaeffl.poker.engine.component.RuleEngine();
+                handEvaluator, config.getRakeStrategy(), listeners);
+
+        this.tableManager = new de.simonaltschaeffl.poker.engine.component.TableManager(listeners,
+                config.getMaxPlayers());
+        this.ruleEngine = new de.simonaltschaeffl.poker.engine.component.RuleEngine(config.getBettingRuleStrategy());
         this.actionHandler = new de.simonaltschaeffl.poker.engine.component.ActionHandler(listeners, ruleEngine);
         this.roundLifecycle = new de.simonaltschaeffl.poker.engine.component.RoundLifecycle(
                 gameState, deck, listeners, payoutCalculator, tableManager, actionHandler, ruleEngine,
-                smallBlind, bigBlind);
+                config.getSmallBlind(), config.getBigBlind());
+        this.timeoutManager = new TimeoutManager(config.getActionTimeoutMs(), this::performAction);
+    }
+
+    /**
+     * Constructs a new PokerGame with the specified configuration using default
+     * hand evaluator and deck.
+     *
+     * @param config The game configuration.
+     */
+    public PokerGame(PokerGameConfiguration config) {
+        this(config, new StandardHandEvaluator(), new Deck());
+    }
+
+    // Legacy constructor for backward compatibility
+    public PokerGame(int smallBlind, int bigBlind, HandEvaluator handEvaluator, Deck deck) {
+        this(new PokerGameConfiguration.Builder().smallBlind(smallBlind).bigBlind(bigBlind).build(), handEvaluator,
+                deck);
     }
 
     public PokerGame(int smallBlind, int bigBlind, HandEvaluator handEvaluator) {
         this(smallBlind, bigBlind, handEvaluator, new Deck());
     }
 
-    // Legacy Constructor for backward compatibility (uses Standard)
+    /**
+     * Legacy constructor for backward compatibility. Uses StandardHandEvaluator and
+     * default Deck.
+     *
+     * @param smallBlind The small blind amount.
+     * @param bigBlind   The big blind amount.
+     * @deprecated Use {@link #PokerGame(PokerGameConfiguration)} instead.
+     */
+    @Deprecated
     public PokerGame(int smallBlind, int bigBlind) {
         this(smallBlind, bigBlind, new StandardHandEvaluator());
     }
 
+    /**
+     * Adds a player to the game or waiting list.
+     * 
+     * @param player The player joining.
+     */
     public void join(Player player) {
         tableManager.join(player, gameState);
     }
@@ -55,6 +108,10 @@ public class PokerGame {
 
     public GameState getGameState() {
         return gameState;
+    }
+
+    public PokerGameConfiguration getConfig() {
+        return config;
     }
 
     public int getSmallBlind() {
@@ -91,4 +148,7 @@ public class PokerGame {
         roundLifecycle.advanceGame();
     }
 
+    public void checkTimeouts() {
+        timeoutManager.checkTimeouts(gameState);
+    }
 }

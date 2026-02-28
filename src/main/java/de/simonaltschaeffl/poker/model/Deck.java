@@ -1,5 +1,6 @@
 package de.simonaltschaeffl.poker.model;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,9 +11,11 @@ import jakarta.validation.constraints.NotNull;
 public class Deck {
     @NotNull
     private final List<Card> cards;
+    private final SecureRandom secureRandom;
 
     public Deck() {
         this.cards = new ArrayList<>();
+        this.secureRandom = new SecureRandom();
         reset();
     }
 
@@ -27,7 +30,7 @@ public class Deck {
     }
 
     public void shuffle() {
-        Collections.shuffle(cards);
+        Collections.shuffle(cards, secureRandom);
     }
 
     public Optional<Card> deal() {

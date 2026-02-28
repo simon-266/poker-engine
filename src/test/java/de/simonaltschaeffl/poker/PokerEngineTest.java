@@ -4,6 +4,7 @@ import de.simonaltschaeffl.poker.engine.PokerGame;
 import de.simonaltschaeffl.poker.model.*;
 import de.simonaltschaeffl.poker.service.CactusKevEvaluator;
 import de.simonaltschaeffl.poker.service.StandardHandEvaluator;
+import de.simonaltschaeffl.poker.exception.InvalidActionException;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -411,7 +412,7 @@ public class PokerEngineTest {
         // Action P2. Pot is 10+40 = 50. P2 put 20. Needs 20 to call.
         // P2 Re-raises. Min raise is +20. Total 60.
         // Let's try invalid raise (under min).
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(InvalidActionException.class, () -> {
             game.performAction("p2", ActionType.RAISE, 50); // Raise to 50 (Increase by 10 only) - should fail
         });
 

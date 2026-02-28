@@ -1,9 +1,11 @@
 package de.simonaltschaeffl.poker.api;
 
 import de.simonaltschaeffl.poker.model.ActionType;
+import de.simonaltschaeffl.poker.model.GameState;
 import de.simonaltschaeffl.poker.model.Player;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface GameEventListener {
 
@@ -18,6 +20,23 @@ public interface GameEventListener {
      * @param roundName e.g., "PRE_FLOP", "FLOP", "TURN", "RIVER"
      */
     void onRoundStarted(String roundName);
+
+    /**
+     * Broadcasts whenever the state of the game has meaningfully changed (e.g.
+     * board updated,
+     * bets collected, hand finished). Highly useful for WebSocket clients to just
+     * pull `GameStateDTO.from()`.
+     */
+    void onGameStateChanged(GameState gameState);
+
+    /**
+     * Called when it becomes a specific player's turn to act.
+     * 
+     * @param player         The player whose turn it is.
+     * @param allowedActions The Set of actions this player is legally allowed to
+     *                       take.
+     */
+    void onPlayerTurn(Player player, Set<ActionType> allowedActions);
 
     /**
      * Called when a player performs a specific action.
@@ -52,4 +71,12 @@ public interface GameEventListener {
      * @param player The player who joined the waiting list.
      */
     void onPlayerJoinedWaitingList(Player player);
+
+    /**
+     * Called when house commission (rake) is deducted from the pot before showdown
+     * distribution.
+     * 
+     * @param amount The amount of chips collected.
+     */
+    void onRakeCollected(int amount);
 }

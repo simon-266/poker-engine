@@ -30,6 +30,21 @@ public class Pot {
         return playerContributions.getOrDefault(playerId, 0);
     }
 
+    public void deductRake(int amount) {
+        if (amount > total) {
+            throw new IllegalArgumentException("Cannot deduct rake larger than pot total");
+        }
+        total -= amount;
+
+        // We technically don't strictly *have* to proportionally reduce
+        // playerContributions
+        // for the side-pot math because payout slices are done by sorting
+        // contributions.
+        // However, reducing them proportionally is more accurate for accounting.
+        // For simplicity right now, since the payout logic uses absolute slice amounts,
+        // the payout loop just distributes what's left. We don't touch contributions.
+    }
+
     public Map<String, Integer> getContributions() {
         return new HashMap<>(playerContributions);
     }

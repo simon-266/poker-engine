@@ -5,6 +5,7 @@ import de.simonaltschaeffl.poker.model.ActionType;
 import de.simonaltschaeffl.poker.model.GameState;
 import de.simonaltschaeffl.poker.model.Player;
 import de.simonaltschaeffl.poker.model.PlayerStatus;
+import de.simonaltschaeffl.poker.exception.InvalidActionException;
 
 import java.util.List;
 
@@ -57,7 +58,7 @@ public class ActionHandler {
                 gameState.getPot().add(player, amount);
                 player.setStatus(PlayerStatus.ALL_IN);
             }
-            case SMALL_BLIND, BIG_BLIND -> throw new IllegalArgumentException("Blinds should be posted via postBlind");
+            case SMALL_BLIND, BIG_BLIND -> throw new InvalidActionException("Blinds should be posted via postBlind");
         }
 
         // Notify
@@ -65,6 +66,7 @@ public class ActionHandler {
         if (gameState.getPot().getTotal() != potTotalBefore) {
             notifyPotUpdate(gameState.getPot().getTotal());
         }
+        notifyGameStateChanged(gameState);
 
         // Mark as acted
         gameState.addActedPlayer(player);
@@ -77,6 +79,7 @@ public class ActionHandler {
 
         notifyPlayerAction(player, type, amount, balanceBefore, player.getChips());
         notifyPotUpdate(gameState.getPot().getTotal());
+        notifyGameStateChanged(gameState);
     }
 
     private void notifyPlayerAction(Player p, ActionType type, int amount, int before, int after) {
@@ -85,5 +88,9 @@ public class ActionHandler {
 
     private void notifyPotUpdate(int total) {
         listeners.forEach(l -> l.onPotUpdate(total));
+    }
+
+    private void notifyGameStateChanged(GameState gameState) {
+        listeners.forEach(l -> l.onGameStateChanged(gameState));
     }
 }

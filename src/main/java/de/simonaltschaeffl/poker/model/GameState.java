@@ -20,6 +20,7 @@ public class GameState {
     private int currentActionPosition;
     @NotNull
     private GamePhase phase;
+    private long currentTurnStartTime;
 
     private final java.util.Set<String> actedPlayers;
 
@@ -106,5 +107,13 @@ public class GameState {
 
     public void setCurrentActionPosition(int currentActionPosition) {
         this.currentActionPosition = currentActionPosition;
+    }
+
+    public long getCurrentTurnStartTime() {
+        return currentTurnStartTime;
+    }
+
+    public void setCurrentTurnStartTime(long currentTurnStartTime) {
+        this.currentTurnStartTime = currentTurnStartTime;
     }
 }

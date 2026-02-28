@@ -2,8 +2,11 @@ package de.simonaltschaeffl.poker;
 
 import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.engine.PokerGame;
+import de.simonaltschaeffl.poker.engine.PokerGameConfiguration;
 import de.simonaltschaeffl.poker.model.ActionType;
+import de.simonaltschaeffl.poker.model.GameState;
 import de.simonaltschaeffl.poker.model.Player;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -39,6 +42,14 @@ public class WaitingListTest {
         }
 
         @Override
+        public void onGameStateChanged(GameState gameState) {
+        }
+
+        @Override
+        public void onPlayerTurn(Player player, Set<ActionType> allowedActions) {
+        }
+
+        @Override
         public void onPlayerAction(Player player, ActionType action, int amount, int chipBalanceBefore,
                 int chipBalanceAfter) {
         }
@@ -55,12 +66,21 @@ public class WaitingListTest {
         public void onPlayerJoinedWaitingList(Player player) {
             this.lastPlayerJoined = player;
         }
+
+        @Override
+        public void onRakeCollected(int amount) {
+        }
     }
 
     @Test
     public void testPlayerJoinedWaitingListEvent() {
         // Arrange
-        PokerGame game = new PokerGame(10, 20);
+        PokerGameConfiguration config = new PokerGameConfiguration.Builder()
+                .smallBlind(10)
+                .bigBlind(20)
+                .maxPlayers(3)
+                .build();
+        PokerGame game = new PokerGame(config);
         TestGameListener listener = new TestGameListener();
         game.addListener(listener);
 

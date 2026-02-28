@@ -1,6 +1,7 @@
 package de.simonaltschaeffl.poker.client;
 
 import de.simonaltschaeffl.poker.engine.PokerGame;
+import de.simonaltschaeffl.poker.engine.PokerGameConfiguration;
 import de.simonaltschaeffl.poker.model.ActionType;
 import de.simonaltschaeffl.poker.model.Card;
 import de.simonaltschaeffl.poker.model.GameState;
@@ -10,6 +11,7 @@ import de.simonaltschaeffl.poker.api.GameEventListener;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ConsoleClient {
@@ -34,7 +36,11 @@ public class ConsoleClient {
             int numBots = promptInt(scanner, "Enter number of bots: ");
             int startChips = promptInt(scanner, "Enter starting chips (e.g. 1000): ");
 
-            PokerGame game = new PokerGame(10, 20); // Blinds 10/20
+            PokerGameConfiguration config = new PokerGameConfiguration.Builder()
+                    .smallBlind(10)
+                    .bigBlind(20)
+                    .build();
+            PokerGame game = new PokerGame(config);
             game.addListener(new ConsoleGameLogger());
 
             for (int i = 1; i <= numHumans; i++) {
@@ -201,6 +207,16 @@ public class ConsoleClient {
         }
 
         @Override
+        public void onGameStateChanged(GameState gameState) {
+            // Not needed for console
+        }
+
+        @Override
+        public void onPlayerTurn(Player player, Set<ActionType> allowedActions) {
+            // Not needed for console as it's handled synchronously in main loop
+        }
+
+        @Override
         public void onPlayerAction(Player player, ActionType action, int amount, int chipBalanceBefore,
                 int chipBalanceAfter) {
             String amountStr = (action == ActionType.CHECK || action == ActionType.FOLD) ? "" : " " + amount;
@@ -226,7 +242,12 @@ public class ConsoleClient {
 
         @Override
         public void onPlayerJoinedWaitingList(Player player) {
-            System.out.println("Player " + player.getName() + " added to waiting list.");
+            System.out.println(">>> " + player.getName() + " joined the waiting list.");
+        }
+
+        @Override
+        public void onRakeCollected(int amount) {
+            System.out.println(">>> House collected rake: " + amount);
         }
     }
 }
