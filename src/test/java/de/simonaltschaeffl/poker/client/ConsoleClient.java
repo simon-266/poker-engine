@@ -41,7 +41,7 @@ public class ConsoleClient {
                     .bigBlind(20)
                     .build();
             PokerGame game = new PokerGame(config);
-            game.addListener(new ConsoleGameLogger());
+            game.addListener(new ConsoleGameLogger(game));
 
             for (int i = 1; i <= numHumans; i++) {
                 System.out.print("Enter name for Human " + i + ": ");
@@ -196,6 +196,12 @@ public class ConsoleClient {
 
     // Inner class for logging
     private class ConsoleGameLogger implements GameEventListener {
+        private final PokerGame game;
+
+        public ConsoleGameLogger(PokerGame game) {
+            this.game = game;
+        }
+
         @Override
         public void onGameStarted() {
             System.out.println("[EVENT] Game Started");
@@ -232,6 +238,13 @@ public class ConsoleClient {
         @Override
         public void onHandEnded(List<Player> winners, Map<String, Integer> payoutMap) {
             System.out.println("\n[EVENT] Hand Ended!");
+            System.out.println("Player Cards:");
+            for (Player p : game.getGameState().getPlayers()) {
+                if (p.getStatus() != de.simonaltschaeffl.poker.model.PlayerStatus.LEFT) {
+                    System.out.printf("  %s: %s\n", p.getName(), formatCards(p.getHoleCards()));
+                }
+            }
+
             System.out.print("Winners: ");
             for (Player w : winners) {
                 Integer amount = payoutMap.get(w.getId());

@@ -11,8 +11,7 @@ import de.simonaltschaeffl.poker.model.PlayerStatus;
  */
 public class TimeoutManager {
     private final long actionTimeoutMs;
-    // Functional interface for performAction to safely trigger actions without
-    // circular dependencies
+    // Functional interface to safely trigger actions without circular dependencies
     private final ActionTrigger actionTrigger;
 
     public interface ActionTrigger {
@@ -26,8 +25,7 @@ public class TimeoutManager {
 
     /**
      * Checks if the active player's turn has exceeded the time bank.
-     * Needs to be called periodically (e.g. by a background task / scheduler of the
-     * embedding app).
+     * Needs to be called periodically by the embedding application.
      * 
      * @param gameState The current state.
      */
@@ -55,10 +53,7 @@ public class TimeoutManager {
         long turnStart = gameState.getCurrentTurnStartTime();
 
         if (turnStart > 0 && (now - turnStart) > actionTimeoutMs) {
-            // Determine whether to fold or check
-            // Generally, a timeout should CHECK if free, otherwise FOLD.
-            // Since validateAction logic is somewhat hidden here, we can try to find
-            // highest bet.
+            // A timeout results in a CHECK if there is no facing bet, otherwise FOLD.
             int highestRoundBet = gameState.getPlayers().stream()
                     .mapToInt(Player::getCurrentBet)
                     .max().orElse(0);

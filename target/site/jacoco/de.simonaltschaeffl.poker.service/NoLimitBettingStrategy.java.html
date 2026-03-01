@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NoLimitBettingStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poker-engine</a> &gt; <a href="index.source.html" class="el_package">de.simonaltschaeffl.poker.service</a> &gt; <span class="el_source">NoLimitBettingStrategy.java</span></div><h1>NoLimitBettingStrategy.java</h1><pre class="source lang-java linenums">package de.simonaltschaeffl.poker.service;
+
+import de.simonaltschaeffl.poker.model.ActionType;
+import de.simonaltschaeffl.poker.model.GameState;
+import de.simonaltschaeffl.poker.model.Player;
+import de.simonaltschaeffl.poker.exception.InvalidActionException;
+
+import java.util.EnumSet;
+import java.util.Set;
+
+/**
+ * Betting rules for No-Limit Texas Hold'em.
+ * Allows a player to bet any amount up to their entire stack (All-In).
+ */
+<span class="fc" id="L15">public class NoLimitBettingStrategy implements BettingRuleStrategy {</span>
+
+    @Override
+    public Set&lt;ActionType&gt; getAllowedActions(Player player, GameState gameState, int highestRoundBet) {
+<span class="fc" id="L19">        Set&lt;ActionType&gt; allowed = EnumSet.noneOf(ActionType.class);</span>
+
+<span class="fc" id="L21">        allowed.add(ActionType.FOLD);</span>
+<span class="fc" id="L22">        allowed.add(ActionType.ALL_IN);</span>
+
+<span class="pc bpc" id="L24" title="1 of 2 branches missed.">        if (player.getCurrentBet() == highestRoundBet) {</span>
+<span class="nc" id="L25">            allowed.add(ActionType.CHECK);</span>
+<span class="pc bpc" id="L26" title="1 of 2 branches missed.">        } else if (player.getChips() &gt;= (highestRoundBet - player.getCurrentBet())) {</span>
+<span class="fc" id="L27">            allowed.add(ActionType.CALL);</span>
+        }
+
+        // Raise is allowed as long as the player has room to raise past the current
+        // highest bet
+<span class="pc bpc" id="L32" title="1 of 2 branches missed.">        if (player.getChips() &gt; (highestRoundBet - player.getCurrentBet())) {</span>
+<span class="fc" id="L33">            allowed.add(ActionType.RAISE);</span>
+        }
+
+<span class="fc" id="L36">        return allowed;</span>
+    }
+
+    @Override
+    public void validateRaise(Player player, int amount, int highestRoundBet, int bigBlind, int potTotal) {
+<span class="fc bfc" id="L41" title="All 2 branches covered.">        if (amount &lt; highestRoundBet + bigBlind) {</span>
+<span class="fc" id="L42">            throw new InvalidActionException(&quot;Raise must be at least the previous highest bet plus the big blind (&quot;</span>
+                    + (highestRoundBet + bigBlind) + &quot;)&quot;);
+        }
+<span class="fc" id="L45">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

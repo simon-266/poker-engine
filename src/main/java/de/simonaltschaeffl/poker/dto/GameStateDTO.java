@@ -19,32 +19,11 @@ public record GameStateDTO(
                                 || gameState.getPhase() == GameState.GamePhase.HAND_ENDED;
 
                 List<PlayerDTO> playerDTOs = gameState.getPlayers().stream()
-                                .map(p -> PlayerDTO.from(p, isShowdown || p.getId().equals("HERO"))) // "HERO" logic
-                                                                                                     // would be
-                                                                                                     // client-side
-                                                                                                     // usually, here we
-                                                                                                     // just Dump all or
-                                                                                                     // hide all based
-                                                                                                     // on Showdown.
-                                                                                                     // Ideally we might
-                                                                                                     // need a specific
-                                                                                                     // 'forPlayer'
-                                                                                                     // view.
-                                                                                                     // For now, let's
-                                                                                                     // expose cards
-                                                                                                     // only
-                                                                                                     // on Showdown to
-                                                                                                     // keep it simple
-                                                                                                     // as
-                                                                                                     // per general
-                                                                                                     // request,
-                                                                                                     // OR if the caller
-                                                                                                     // handles
-                                                                                                     // visibility.
-                                                                                                     // Let's stick to:
-                                                                                                     // Hide unless
-                                                                                                     // Showdown for the
-                                                                                                     // general DTO.
+                                .map(p -> PlayerDTO.from(p, isShowdown || p.getId().equals("HERO"))) // Hide hole cards
+                                                                                                     // unless it is
+                                                                                                     // Showdown or the
+                                                                                                     // player's own
+                                                                                                     // view ("HERO").
                                 .collect(Collectors.toList());
 
                 return new GameStateDTO(

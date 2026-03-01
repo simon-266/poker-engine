@@ -9,6 +9,17 @@ import de.simonaltschaeffl.poker.exception.InvalidActionException;
 
 import java.util.List;
 
+/**
+ * Executes approved player actions and updates the {@link GameState}.
+ * This class handles the actual chip movements between players and the pot,
+ * updates player statuses (e.g., FOLDED, ALL_IN), and ensures that all
+ * registered
+ * {@link GameEventListener}s are notified of these state changes.
+ *
+ * <p>
+ * Note: This class assumes that actions have already been validated by the
+ * {@link RuleEngine} before execution.
+ */
 public class ActionHandler {
     private final List<GameEventListener> listeners;
     private final RuleEngine ruleEngine;
@@ -18,6 +29,18 @@ public class ActionHandler {
         this.ruleEngine = ruleEngine;
     }
 
+    /**
+     * Executes the given action for a player, updating their chip stack, status,
+     * and the game pot accordingly. It also notifies listeners of the event.
+     *
+     * @param player    The player performing the action.
+     * @param type      The type of action to execute.
+     * @param amount    The amount of chips involved (relevant for CALL, RAISE,
+     *                  ALL_IN).
+     * @param gameState The current state of the game.
+     * @throws InvalidActionException If an attempt is made to post blinds via this
+     *                                method.
+     */
     public void executeAction(Player player, ActionType type, int amount, GameState gameState) {
         int balanceBefore = player.getChips();
         int potTotalBefore = gameState.getPot().getTotal();
@@ -72,6 +95,18 @@ public class ActionHandler {
         gameState.addActedPlayer(player);
     }
 
+    /**
+     * Deducts the blind amount from the player's stack and adds it to the pot.
+     * This is handled separately from
+     * {@link #executeAction(Player, ActionType, int, GameState)} as blinds are
+     * forced
+     * bets posted automatically at the start of a hand.
+     *
+     * @param player    The player posting the blind.
+     * @param amount    The amount of the blind.
+     * @param type      The type of blind (SMALL_BLIND or BIG_BLIND).
+     * @param gameState The current state of the game.
+     */
     public void postBlind(Player player, int amount, ActionType type, GameState gameState) {
         int balanceBefore = player.getChips();
         player.bet(amount);

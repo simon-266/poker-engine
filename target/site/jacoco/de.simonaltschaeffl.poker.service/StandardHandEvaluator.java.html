@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StandardHandEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poker-engine</a> &gt; <a href="index.source.html" class="el_package">de.simonaltschaeffl.poker.service</a> &gt; <span class="el_source">StandardHandEvaluator.java</span></div><h1>StandardHandEvaluator.java</h1><pre class="source lang-java linenums">package de.simonaltschaeffl.poker.service;
+
+import de.simonaltschaeffl.poker.model.Card;
+import de.simonaltschaeffl.poker.model.HandRank;
+import de.simonaltschaeffl.poker.model.HandResult;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+<span class="fc" id="L11">public class StandardHandEvaluator implements HandEvaluator {</span>
+
+    public HandResult evaluate(List&lt;Card&gt; holeCards, List&lt;Card&gt; communityCards) {
+<span class="fc" id="L14">        List&lt;Card&gt; allCards = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L15">        allCards.addAll(holeCards);</span>
+<span class="fc" id="L16">        allCards.addAll(communityCards);</span>
+
+<span class="pc bpc" id="L18" title="1 of 2 branches missed.">        if (allCards.size() &lt; 5) {</span>
+<span class="nc" id="L19">            throw new IllegalArgumentException(&quot;Need at least 5 cards to evaluate&quot;);</span>
+        }
+
+        // Sort descending (Ace to 2) - Critical for logic
+<span class="fc" id="L23">        Collections.sort(allCards, Collections.reverseOrder());</span>
+
+        // Check Flush
+<span class="fc" id="L26">        List&lt;Card&gt; flushCards = getFlushCards(allCards);</span>
+
+        // Check Straight
+<span class="fc" id="L29">        List&lt;Card&gt; straightCards = getStraightCards(allCards);</span>
+
+        // Check Straight Flush (including Royal)
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        if (flushCards != null) {</span>
+            // Re-check straight only on flush cards
+<span class="fc" id="L34">            List&lt;Card&gt; straightFlushCards = getStraightCards(flushCards);</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">            if (straightFlushCards != null) {</span>
+                // Check Royal
+<span class="fc bfc" id="L37" title="All 2 branches covered.">                if (straightFlushCards.get(0).rank() == Card.Rank.ACE</span>
+<span class="pc bpc" id="L38" title="1 of 2 branches missed.">                        &amp;&amp; straightFlushCards.get(4).rank() == Card.Rank.TEN) {</span>
+<span class="fc" id="L39">                    return new HandResult(HandRank.ROYAL_FLUSH, straightFlushCards);</span>
+                }
+<span class="fc" id="L41">                return new HandResult(HandRank.STRAIGHT_FLUSH, straightFlushCards);</span>
+            }
+        }
+
+        // Four of a Kind
+<span class="fc" id="L46">        var groups = groupByRank(allCards);</span>
+<span class="fc" id="L47">        var quads = findGroup(groups, 4);</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        if (quads != null) {</span>
+<span class="nc" id="L49">            List&lt;Card&gt; bestFive = new ArrayList&lt;&gt;(quads);</span>
+<span class="nc" id="L50">            fillKickers(bestFive, allCards, 1);</span>
+<span class="nc" id="L51">            return new HandResult(HandRank.FOUR_OF_A_KIND, bestFive);</span>
+        }
+
+        // Full House
+<span class="fc" id="L55">        var trips = findGroup(groups, 3);</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        if (trips != null) {</span>
+            // Find pair (or another trips turned pair)
+            // Remove used trips from consideration for pair
+<span class="fc" id="L59">            List&lt;Card&gt; remaining = new ArrayList&lt;&gt;(allCards);</span>
+<span class="fc" id="L60">            remaining.removeAll(trips);</span>
+<span class="fc" id="L61">            var remainingGroups = groupByRank(remaining);</span>
+<span class="fc" id="L62">            var pair = findGroup(remainingGroups, 2); // Priority to pair (&gt;=2 actually, could be another trips)</span>
+
+            // If we have two 3-of-a-kinds, the lower one becomes the pair part of full
+            // house.
+            // The removeAll logic handles this implicitly due to descending sort order.
+
+            // Special case: 2 sets of trips.
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">            if (pair == null) {</span>
+<span class="fc" id="L70">                pair = findGroup(remainingGroups, 3); // Another trips treated as pair</span>
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">                if (pair != null) {</span>
+<span class="nc" id="L72">                    pair = pair.subList(0, 2);</span>
+                }
+            }
+
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">            if (pair != null) {</span>
+<span class="nc" id="L77">                List&lt;Card&gt; bestFive = new ArrayList&lt;&gt;(trips);</span>
+<span class="nc" id="L78">                bestFive.addAll(pair);</span>
+<span class="nc" id="L79">                return new HandResult(HandRank.FULL_HOUSE, bestFive);</span>
+            }
+        }
+
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        if (flushCards != null) {</span>
+<span class="nc" id="L84">            return new HandResult(HandRank.FLUSH, flushCards.subList(0, 5));</span>
+        }
+
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">        if (straightCards != null) {</span>
+<span class="nc" id="L88">            return new HandResult(HandRank.STRAIGHT, straightCards);</span>
+        }
+
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (trips != null) {</span>
+<span class="fc" id="L92">            List&lt;Card&gt; bestFive = new ArrayList&lt;&gt;(trips);</span>
+<span class="fc" id="L93">            fillKickers(bestFive, allCards, 2);</span>
+<span class="fc" id="L94">            return new HandResult(HandRank.THREE_OF_A_KIND, bestFive);</span>
+        }
+
+        // Two Pair
+<span class="fc" id="L98">        var pair1 = findGroup(groups, 2);</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">        if (pair1 != null) {</span>
+<span class="nc" id="L100">            List&lt;Card&gt; remaining = new ArrayList&lt;&gt;(allCards);</span>
+<span class="nc" id="L101">            remaining.removeAll(pair1);</span>
+<span class="nc" id="L102">            var groups2 = groupByRank(remaining);</span>
+<span class="nc" id="L103">            var pair2 = findGroup(groups2, 2);</span>
+
+<span class="nc bnc" id="L105" title="All 2 branches missed.">            if (pair2 != null) {</span>
+<span class="nc" id="L106">                List&lt;Card&gt; bestFive = new ArrayList&lt;&gt;(pair1);</span>
+<span class="nc" id="L107">                bestFive.addAll(pair2);</span>
+<span class="nc" id="L108">                fillKickers(bestFive, allCards, 1);</span>
+<span class="nc" id="L109">                return new HandResult(HandRank.TWO_PAIR, bestFive);</span>
+            }
+
+            // One Pair
+<span class="nc" id="L113">            List&lt;Card&gt; bestFive = new ArrayList&lt;&gt;(pair1);</span>
+<span class="nc" id="L114">            fillKickers(bestFive, allCards, 3);</span>
+<span class="nc" id="L115">            return new HandResult(HandRank.ONE_PAIR, bestFive);</span>
+        }
+
+        // High Card
+<span class="fc" id="L119">        return new HandResult(HandRank.HIGH_CARD, allCards.subList(0, 5));</span>
+    }
+
+    // --- Helpers ---
+
+    private Map&lt;Card.Rank, List&lt;Card&gt;&gt; groupByRank(List&lt;Card&gt; cards) {
+<span class="fc" id="L125">        Map&lt;Card.Rank, List&lt;Card&gt;&gt; map = new java.util.TreeMap&lt;&gt;(Collections.reverseOrder()); // Highest rank first</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        for (Card c : cards) {</span>
+<span class="fc" id="L127">            map.computeIfAbsent(c.rank(), k -&gt; new ArrayList&lt;&gt;()).add(c);</span>
+<span class="fc" id="L128">        }</span>
+<span class="fc" id="L129">        return map;</span>
+    }
+
+    // Find FIRST group of size &gt;= N (Since map is sorted desc, this is the highest
+    // rank group)
+    private List&lt;Card&gt; findGroup(Map&lt;Card.Rank, List&lt;Card&gt;&gt; groups, int size) {
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        for (List&lt;Card&gt; group : groups.values()) {</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            if (group.size() &gt;= size) {</span>
+<span class="fc" id="L137">                return group;</span>
+            }
+<span class="fc" id="L139">        }</span>
+<span class="fc" id="L140">        return null;</span>
+    }
+
+    private void fillKickers(List&lt;Card&gt; currentHand, List&lt;Card&gt; allCards, int count) {
+<span class="fc" id="L144">        int added = 0;</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        for (Card c : allCards) {</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">            if (added &gt;= count)</span>
+<span class="fc" id="L147">                break;</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">            if (!currentHand.contains(c)) {</span>
+<span class="fc" id="L149">                currentHand.add(c);</span>
+<span class="fc" id="L150">                added++;</span>
+            }
+<span class="fc" id="L152">        }</span>
+<span class="fc" id="L153">    }</span>
+
+    private List&lt;Card&gt; getFlushCards(List&lt;Card&gt; cards) {
+<span class="fc" id="L156">        Map&lt;Card.Suit, List&lt;Card&gt;&gt; suits = new java.util.EnumMap&lt;&gt;(Card.Suit.class);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        for (Card c : cards) {</span>
+<span class="fc" id="L158">            suits.computeIfAbsent(c.suit(), k -&gt; new ArrayList&lt;&gt;()).add(c);</span>
+<span class="fc" id="L159">        }</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        for (List&lt;Card&gt; suitCards : suits.values()) {</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">            if (suitCards.size() &gt;= 5) {</span>
+                // Already sorted desc
+<span class="fc" id="L163">                return suitCards;</span>
+            }
+<span class="fc" id="L165">        }</span>
+<span class="fc" id="L166">        return null;</span>
+    }
+
+    private List&lt;Card&gt; getStraightCards(List&lt;Card&gt; sortedCards) {
+        // Remove duplicates for straight logic
+<span class="fc" id="L171">        List&lt;Card&gt; uniqueRank = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        if (sortedCards.isEmpty())</span>
+<span class="nc" id="L173">            return null;</span>
+<span class="fc" id="L174">        uniqueRank.add(sortedCards.get(0));</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        for (int i = 1; i &lt; sortedCards.size(); i++) {</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">            if (sortedCards.get(i).rank() != uniqueRank.get(uniqueRank.size() - 1).rank()) {</span>
+<span class="fc" id="L177">                uniqueRank.add(sortedCards.get(i));</span>
+            }
+        }
+
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">        if (uniqueRank.size() &lt; 5)</span>
+<span class="nc" id="L182">            return null;</span>
+
+        // Normal Straight
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        for (int i = 0; i &lt;= uniqueRank.size() - 5; i++) {</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">            if (isSequential(uniqueRank.subList(i, i + 5))) {</span>
+<span class="fc" id="L187">                return uniqueRank.subList(i, i + 5);</span>
+            }
+        }
+
+        // Wheel (Ace-5-4-3-2)
+        // Since sorted Desc, Ace is at 0. We need to check if we have A, 5, 4, 3, 2.
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (uniqueRank.get(0).rank() == Card.Rank.ACE) {</span>
+            // Look for 5,4,3,2
+<span class="fc" id="L195">            List&lt;Card&gt; wheel = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L196">            wheel.add(uniqueRank.get(0)); // Ace</span>
+
+            // Check for 5-4-3-2
+<span class="fc" id="L199">            boolean has5 = false, has4 = false, has3 = false, has2 = false;</span>
+<span class="fc" id="L200">            Card c5 = null, c4 = null, c3 = null, c2 = null;</span>
+
+<span class="fc bfc" id="L202" title="All 2 branches covered.">            for (Card c : uniqueRank) {</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">                if (c.rank() == Card.Rank.FIVE) {</span>
+<span class="nc" id="L204">                    has5 = true;</span>
+<span class="nc" id="L205">                    c5 = c;</span>
+                }
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">                if (c.rank() == Card.Rank.FOUR) {</span>
+<span class="nc" id="L208">                    has4 = true;</span>
+<span class="nc" id="L209">                    c4 = c;</span>
+                }
+<span class="fc bfc" id="L211" title="All 2 branches covered.">                if (c.rank() == Card.Rank.THREE) {</span>
+<span class="fc" id="L212">                    has3 = true;</span>
+<span class="fc" id="L213">                    c3 = c;</span>
+                }
+<span class="fc bfc" id="L215" title="All 2 branches covered.">                if (c.rank() == Card.Rank.TWO) {</span>
+<span class="fc" id="L216">                    has2 = true;</span>
+<span class="fc" id="L217">                    c2 = c;</span>
+                }
+<span class="fc" id="L219">            }</span>
+
+<span class="pc bpc" id="L221" title="7 of 8 branches missed.">            if (has5 &amp;&amp; has4 &amp;&amp; has3 &amp;&amp; has2) {</span>
+                // Assemble the wheel straight in the order 5-4-3-2-A.
+                // This ensures correct index 0 evaluation for tie-breaking.
+<span class="nc" id="L224">                return List.of(c5, c4, c3, c2, uniqueRank.get(0));</span>
+            }
+        }
+
+<span class="fc" id="L228">        return null;</span>
+    }
+
+    private boolean isSequential(List&lt;Card&gt; fiveCards) {
+<span class="fc" id="L232">        int first = fiveCards.get(0).rank().getValue();</span>
+<span class="fc bfc" id="L233" title="All 2 branches covered.">        for (int i = 1; i &lt; 5; i++) {</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">            if (fiveCards.get(i).rank().getValue() != first - i)</span>
+<span class="fc" id="L235">                return false;</span>
+        }
+<span class="fc" id="L237">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

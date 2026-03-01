@@ -63,7 +63,7 @@ public class PayoutCalculator {
         int totalPotSize = pot.getTotal();
         int rakeAmount = rakeStrategy.calculateRake(totalPotSize);
         if (rakeAmount > 0) {
-            pot.deductRake(rakeAmount); // We will need to add this method to Pot
+            pot.deductRake(rakeAmount);
             for (GameEventListener listener : listeners) {
                 listener.onRakeCollected(rakeAmount);
             }
@@ -78,8 +78,7 @@ public class PayoutCalculator {
         // 2. Evaluate all hands
         record PlayerHand(Player player, HandResult hand) {
         }
-        // PERFORMANCE-FIX: Parallele Stream-Evaluierung für CPU-intensive CactusKev
-        // Evaluation
+        // Use parallel streams to speed up CPU-intensive hand evaluation.
         List<PlayerHand> results = showdownPlayers.parallelStream()
                 .map(p -> new PlayerHand(p, handEvaluator.evaluate(p.getHoleCards(), board)))
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -111,8 +110,7 @@ public class PayoutCalculator {
         Map<String, Integer> payouts = new HashMap<>();
         Map<String, Integer> contributions = pot.getContributions();
 
-        // PERFORMANCE-FIX: Extrahiere Einsätze, aufsteigend sortieren für linearen
-        // Durchlauf (O(N) statt iterativer Minimum-Suche O(N^2))
+        // Extract and sort unique bet sizes to calculate pot distribution in O(N) time.
         List<Integer> uniqueAmounts = contributions.values().stream()
                 .filter(v -> v > 0)
                 .distinct()

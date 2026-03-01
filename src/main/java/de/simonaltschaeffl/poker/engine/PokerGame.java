@@ -70,29 +70,6 @@ public class PokerGame {
         this(config, new StandardHandEvaluator(), new Deck());
     }
 
-    // Legacy constructor for backward compatibility
-    public PokerGame(int smallBlind, int bigBlind, HandEvaluator handEvaluator, Deck deck) {
-        this(new PokerGameConfiguration.Builder().smallBlind(smallBlind).bigBlind(bigBlind).build(), handEvaluator,
-                deck);
-    }
-
-    public PokerGame(int smallBlind, int bigBlind, HandEvaluator handEvaluator) {
-        this(smallBlind, bigBlind, handEvaluator, new Deck());
-    }
-
-    /**
-     * Legacy constructor for backward compatibility. Uses StandardHandEvaluator and
-     * default Deck.
-     *
-     * @param smallBlind The small blind amount.
-     * @param bigBlind   The big blind amount.
-     * @deprecated Use {@link #PokerGame(PokerGameConfiguration)} instead.
-     */
-    @Deprecated
-    public PokerGame(int smallBlind, int bigBlind) {
-        this(smallBlind, bigBlind, new StandardHandEvaluator());
-    }
-
     /**
      * Adds a player to the game or waiting list.
      * 

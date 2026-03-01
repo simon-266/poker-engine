@@ -25,9 +25,11 @@ de/simonaltschaeffl/poker/engine/component/RuleEngine.class
 de/simonaltschaeffl/poker/model/Pot.class
 de/simonaltschaeffl/poker/exception/GameFullException.class
 de/simonaltschaeffl/poker/service/CactusKevCommon.class
+de/simonaltschaeffl/poker/service/JsonGameStateSerializer.class
 de/simonaltschaeffl/poker/engine/PokerGame.class
 de/simonaltschaeffl/poker/model/HandResult.class
 de/simonaltschaeffl/poker/model/GameState.class
+de/simonaltschaeffl/poker/api/GameStateRepository.class
 de/simonaltschaeffl/poker/service/HandEvaluator.class
 de/simonaltschaeffl/poker/service/PayoutCalculator.class
 de/simonaltschaeffl/poker/service/NoLimitBettingStrategy.class

@@ -1,6 +1,7 @@
 package de.simonaltschaeffl.poker;
 
 import de.simonaltschaeffl.poker.engine.PokerGame;
+import de.simonaltschaeffl.poker.engine.PokerGameConfiguration;
 import de.simonaltschaeffl.poker.model.*;
 import de.simonaltschaeffl.poker.service.CactusKevEvaluator;
 import de.simonaltschaeffl.poker.service.StandardHandEvaluator;
@@ -33,12 +34,8 @@ public class PokerEngineTest {
 
         @Override
         public void reset() {
-            // Do not reset stashed cards to standard deck if we want to control it
-            // checking usage: PokerGame calls reset() (?) No, Deck constructor does.
+            // Retain stashed cards, just perform standard reset logic if necessary.
             super.reset();
-            // In our tests, we will likely want to clear the random cards and use ONLY our
-            // stashed ones?
-            // Or just override deal to prefer stashed cards.
         }
 
         // Push to TOP of deck (next to be dealt)
@@ -69,7 +66,8 @@ public class PokerEngineTest {
     public void testStandardGameFlow() {
         System.out.println("TEST START: testStandardGameFlow");
         StackedDeck deck = new StackedDeck();
-        PokerGame game = new PokerGame(10, 20, new StandardHandEvaluator(), deck);
+        PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
+        PokerGame game = new PokerGame(config, new StandardHandEvaluator(), deck);
         System.out.println("Setup: Blinds 10/20. Players P1, P2.");
 
         TestPlayer p1 = new TestPlayer("p1", "Alice", 1000);
@@ -78,26 +76,14 @@ public class PokerEngineTest {
         game.join(p1);
         game.join(p2);
 
-        // Stack deck for predictable outcome
-        // Deal Order (Heads Up):
-        // P1(Dealer/SB), P2(BB)
-        // Card 1 -> P1, Card 2 -> P2, Card 3 -> P1, Card 4 -> P2
-        // Flop (3), Turn (1), River (1)
+        // Stack deck for predictable outcome.
+        // The StackedDeck operates on a LIFO basis for dealing.
+        // Cards are pushed in reverse order of how they will be dealt.
 
-        // P1 Hole: Ace Spades, King Spades
-        deck.push(Card.Rank.KING, Card.Suit.SPADES); // 3rd card dealt (P1 second)
-        // Wait, deal distribution:
-        // P(Button/SB) gets first?
-        // Usually SB, BB, Button...
-        // In Heads Up: Button is SB. P1 is SB. P2 is BB.
-        // Deal order: SB, BB, SB, BB.
+        // P1 (Dealer/SB) and P2 (BB)
+        // Deal order: P1, P2, P1, P2
 
-        // Let's push in REVERSE order of dealing (Stack is LIFO if we addFirst, deal is
-        // removeFirst)
-        // If I want [A, B, C] to be dealt in order A, B, C...
-        // push(C), push(B), push(A).
-
-        // Reverse Order of "Drawing":
+        // Push board cards in reverse order (River to Flop):
         // River: 2h
         deck.push(Card.Rank.TWO, Card.Suit.HEARTS);
         // Turn: 3h
@@ -128,14 +114,7 @@ public class PokerEngineTest {
 
         // Flop
         assertEquals(GameState.GamePhase.FLOP, getPhase(game));
-        // Action starts on P2 (BB) because P1 is Button/SB?
-        // Heads Up: Button acts First Preflop, Last Postflop?
-        // Let's verify Engine logic.
-        // Engine: SB is Dealer. P2 is BB.
-        // Postflop: Action starts at Small Blind? No, action starts Left of Button.
-        // Heads Up: Dealer is SB. Other is BB.
-        // Preflop: SB acts first.
-        // Postflop: BB acts first (Left of Dealer).
+        // Postflop action starts with BB
 
         game.performAction("p2", ActionType.CHECK, 0);
         game.performAction("p1", ActionType.CHECK, 0);
@@ -153,11 +132,8 @@ public class PokerEngineTest {
         System.out.println("Actions: Check-Check on River.");
 
         // Showdown
-        // P1: As, Ks. Board: 4h, 5h, 6h, 3h, 2h.
-        // Board is 2-3-4-5-6 Straight Flush (Hearts).
-        // Actually Board is 2h,3h,4h,5h,6h. Straight Flush 6-high.
-        // Both play the board. P1 has Flush draws, but board is SF.
-        // Pot split.
+        // The community cards form a 6-high Straight Flush (2h,3h,4h,5h,6h).
+        // Both players play the board, resulting in a split pot.
 
         assertEquals(GameState.GamePhase.HAND_ENDED, getPhase(game));
         assertEquals(1000, p1.getChips());
@@ -177,14 +153,11 @@ public class PokerEngineTest {
         // Total Pot = 500.
         System.out.println("Setup: 3-way All-in Scenario. P1(100, RF), P2(200, Flush), P3(500, Trash).");
 
-        PokerGame game = new PokerGame(10, 20, new StandardHandEvaluator(), new Deck()); // Random deck ok, we define
-                                                                                         // winner via chips? No need
-                                                                                         // rigged deck if outcome is
-                                                                                         // clear or we just check pot
-                                                                                         // formation.
-        // Actually to verify payout we need strict hand rankings.
+        // We omit the random deck initialization because we configure a stacked deck
+        // immediately.
         StackedDeck deck = new StackedDeck();
-        game = new PokerGame(10, 20, new StandardHandEvaluator(), deck);
+        PokerGameConfiguration config2 = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
+        PokerGame game = new PokerGame(config2, new StandardHandEvaluator(), deck);
 
         TestPlayer p1 = new TestPlayer("p1", "Shorty", 100);
         TestPlayer p2 = new TestPlayer("p2", "Mid", 200);
@@ -201,19 +174,13 @@ public class PokerEngineTest {
 
         // Board: Ah, Kh, Qh, Jh, 2s
         // P1: Th, 2c (Royal Flush Hearts)
-        // P2: 9h, 3c (King High Flush? No Board is A,K,Q,J. 9h makes Flush 9-J-Q-K-A?
-        // Yes Ace High Flush)
-        // Wait, Board: Ah, Kh, Qh, Jh.
-        // P1 (Th) -> Th, Jh, Qh, Kh, Ah = Royal.
-        // P2 (9h) -> 9h, Jh, Qh, Kh, Ah = Straight Flush? No. A-K-Q-J-9 is High
-        // Straight Flush?
-        // No, Royal is T-J-Q-K-A.
-        // 9-T-J-Q-K is SF.
-        // If P2 has 9h, and board has A,K,Q,J... P2 has Flush (A,K,Q,J,9).
-        // P1 has Royal. P1 > P2.
+        // Set up the board and player hands to enforce specific winners:
+        // Board: Ah, Kh, Qh, Jh, 2s
+        // P1 (Th, 2c) forms a Royal Flush (wins main pot).
+        // P2 (9h, 3c) forms an Ace-High Flush (wins side pot).
+        // P3 (2d, 7d) has a pair of 2s (loses).
 
-        // Setup Stack
-        // Reverse Order
+        // Push cards in reverse dealing order
         // River: 2s
         deck.push(Card.Rank.TWO, Card.Suit.SPADES);
         // Turn: Jh
@@ -241,28 +208,15 @@ public class PokerEngineTest {
         game.performAction("p2", ActionType.ALL_IN, 0); // 200
         game.performAction("p3", ActionType.CALL, 0); // Matches 200 (Has 500)
 
-        // All-ins automatically run to showdown in engine?
-        // Need to check Phase transition logic.
-        // If all players are all-in (or 1 active), it should auto-run.
-        // Logic: performAction -> transitionPhase -> checks if action needed.
-        // If no action needed, it runs next phase?
-        // Let's assume standard behavior: we might need to manually trigger rounds if
-        // auto-run logic isn't fully recursive.
-        // But let's check verification.
-
-        // P3 has chips left, but matched the bet. No one else can act.
-        // Should proceed to FLOP, TURN, RIVER, SHOWDOWN automatically.
+        // With all opposing players either All-In or calling the maximum bet,
+        // the engine automatically advances through the remaining phases to SHOWDOWN.
 
         assertEquals(GameState.GamePhase.HAND_ENDED, getPhase(game));
 
-        // P1 wins Main Pot (300). Stack -> 300.
-        // P2 wins Side Pot (200) vs P3. Stack -> 200? No, P2 put 200. P3 put 200.
-        // Total Side Pot = 200 (P2 excess) + 200 (P3 match) + 0 (P1).
-        // Wait, P1 put 100. P2 put 200. P3 put 200.
-        // Main Pot: 100(P1) + 100(P2) + 100(P3) = 300.
-        // Side Pot: 0(P1) + 100(P2) + 100(P3) = 200.
-        // P1 Wins Main = +300.
-        // P2 Wins Side = +200.
+        // Payout evaluation:
+        // Main Pot (300) -> Won by P1 (100 stack prior + 200 winnings) -> 300 total
+        // Side Pot (200) -> Won by P2 (200 stack prior, finishes with 200 total)
+        // P3 finishes with 300 total (lost 200 of their 500 initial stack).
 
         assertEquals(300, p1.getChips());
         assertEquals(200, p2.getChips());
@@ -282,7 +236,7 @@ public class PokerEngineTest {
         List<Card> royal = parseCards("As Ks Qs Js Ts 2h 3d");
         HandResult res = ck.evaluate(royal.subList(0, 2), royal.subList(2, 7));
         assertEquals(HandRank.STRAIGHT_FLUSH, res.rank());
-        // Verify Top Card is Ace? (Assuming bestFive is sorted Descending)
+        // Verify Top Card is Ace to confirm correct sorting
         assertEquals(Card.Rank.ACE, res.bestFive().get(0).rank());
 
         // Straight Flush (lower than Royal)
@@ -320,11 +274,7 @@ public class PokerEngineTest {
         List<Card> wheel = parseCards("As 2d 3c 4h 5s 9d Tc");
         HandResult resWheel = ck.evaluate(wheel.subList(0, 2), wheel.subList(2, 7));
         assertEquals(HandRank.STRAIGHT, resWheel.rank());
-        // Note: CK Evaluator handles Ace rotation naturally via its lookup/prime
-        // mapping if implemented correctly.
-        // Let's verify our primeMap has entry for A*2*3*4*5.
-        // If not, it might resolve to HighCard if logic assumes A is only high.
-        // Standard CK does include wheel primes.
+        // Verify wheel straight evaluation (A-2-3-4-5) where Ace acts as low card.
 
         // Three of a Kind
         System.out.println("Testing Three of a Kind...");
@@ -397,7 +347,8 @@ public class PokerEngineTest {
     public void testMinRaiseAndReRaise() {
         System.out.println("TEST START: testMinRaiseAndReRaise");
         // P1, P2. Blinds 10/20.
-        PokerGame game = new PokerGame(10, 20, new StandardHandEvaluator(), new StackedDeck());
+        PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
+        PokerGame game = new PokerGame(config, new StandardHandEvaluator(), new StackedDeck());
         TestPlayer p1 = new TestPlayer("p1", "A", 1000);
         TestPlayer p2 = new TestPlayer("p2", "B", 1000);
         game.join(p1);
@@ -422,13 +373,8 @@ public class PokerEngineTest {
         System.out.println("TEST PASSED: testMinRaiseAndReRaise\n--------------------------------------------------");
     }
 
-    // Accessor to hidden state if needed, using Reflection or added getters on
-    // GameState
+    // Accessor for the game phase to verify correct transitions
     private GameState.GamePhase getPhase(PokerGame game) {
-        // Need to add getter to PokerGame for GameState or expose it.
-        // For now, let's assume I can add a package-private getter or use existing.
-        // PokerGame doesn't expose GameState.
-        // I'll add `public GameState getGameState()` to PokerGame for testing.
         return game.getGameState().getPhase();
     }
 }

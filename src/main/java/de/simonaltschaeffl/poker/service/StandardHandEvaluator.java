@@ -62,16 +62,15 @@ public class StandardHandEvaluator implements HandEvaluator {
             var pair = findGroup(remainingGroups, 2); // Priority to pair (>=2 actually, could be another trips)
 
             // If we have two 3-of-a-kinds, the lower one becomes the pair part of full
-            // house
-            // The logic above handling removeAll covers this seamlessly because we sort
-            // groups by rank desc?
-            // Logic refinement: findGroup returns HIGHEST rank group.
+            // house.
+            // The removeAll logic handles this implicitly due to descending sort order.
 
             // Special case: 2 sets of trips.
             if (pair == null) {
                 pair = findGroup(remainingGroups, 3); // Another trips treated as pair
-                if (pair != null)
+                if (pair != null) {
                     pair = pair.subList(0, 2);
+                }
             }
 
             if (pair != null) {
@@ -220,13 +219,8 @@ public class StandardHandEvaluator implements HandEvaluator {
             }
 
             if (has5 && has4 && has3 && has2) {
-                // Return 5-4-3-2-A (Correct order for Wheel is 5 high straight? Actually
-                // 5,4,3,2,A is the visual order, ranked by 5)
-                // But in our comparison logic, a Higher Straight beats Lower.
-                // If we return [5,4,3,2,A], rank comparison compares index 0 -> 5.
-                // If we return [A,5,4,3,2], rank comparison compares index 0 -> A(14), which is
-                // wrong.
-                // So we must construct list starting with 5.
+                // Assemble the wheel straight in the order 5-4-3-2-A.
+                // This ensures correct index 0 evaluation for tie-breaking.
                 return List.of(c5, c4, c3, c2, uniqueRank.get(0));
             }
         }

@@ -45,13 +45,17 @@ public class RoundLifecycle {
     }
 
     /**
-     * Starts a new hand. This initializes the deck, clears the board, deals hole
-     * cards,
-     * posts small and big blinds, and transitions to the PRE_FLOP phase.
-     * Will transition back to PRE_GAME if there are not enough players left.
+     * Starts a new hand. Initializes the deck, clears the board, deals hole cards,
+     * posts small and big blinds, and transitions the game to the {@code PRE_FLOP}
+     * phase.
+     * <p>
+     * Before starting, it processes any pending seatings (players joining or
+     * leaving).
+     * If fewer than 2 players remain after processing, the hand is aborted and the
+     * game returns to {@code PRE_GAME}.
      *
-     * @throws IllegalStateException if there are less than 2 players before
-     *                               attempting to start
+     * @throws NotEnoughPlayersException If there are fewer than 2 players before
+     *                                   attempting to start.
      */
     public void startHand() {
         if (gameState.getPlayers().size() < 2) {
@@ -110,15 +114,20 @@ public class RoundLifecycle {
 
     /**
      * Evaluates the current game state to transition to the next game phase.
-     * If only one player is active (others folded), it awards the pot to the
-     * winner.
-     * Otherwise, deals the appropriate community cards (Flop/Turn/River) and resets
-     * betting.
+     * <p>
+     * If all but one player have folded, the hand ends immediately and the pot
+     * is awarded to the remaining active player without showing cards.
+     * <p>
+     * Otherwise, it advances the game (e.g., PRE_FLOP to FLOP), deals the required
+     * community cards to the board, resets current bets, and determines which
+     * player acts first in the new betting round.
+     *
+     * @throws HandIsOverException If attempting to transition from an inactive
+     *                             PRE_GAME state without starting a hand first.
      */
     public void transitionPhase() {
         // Check Win by Fold
-        // PERFORMANCE-FIX: Ersetze Stream durch klassische for-Schleife und suche
-        // Gewinner gleichzeitig
+        // Find the active player and count simultaneously for optimization
         long activeCount = 0;
         Player winner = null;
         for (Player p : gameState.getPlayers()) {
@@ -181,10 +190,10 @@ public class RoundLifecycle {
     }
 
     /**
-     * Advances the game logic. If the betting round is complete according to the
-     * RuleEngine,
-     * the game transitions to the next phase. Otherwise, it moves the action to the
-     * next active player.
+     * Advances the game logic after a player has taken an action.
+     * If the betting round is complete according to the {@link RuleEngine},
+     * the game transitions to the next phase. Otherwise, it moves the action
+     * pointer to the next active player who needs to act.
      */
     public void advanceGame() {
         if (ruleEngine.isRoundComplete(gameState)) {
@@ -209,7 +218,7 @@ public class RoundLifecycle {
     }
 
     private void checkAutoAdvance() {
-        // PERFORMANCE-FIX: Ersetze Stream durch klassische for-Schleife
+        // Count active players without stream overhead
         long activeCount = 0;
         for (Player p : gameState.getPlayers()) {
             if (p.getStatus() == PlayerStatus.ACTIVE) {

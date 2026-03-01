@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CactusKevEvaluator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poker-engine</a> &gt; <a href="index.source.html" class="el_package">de.simonaltschaeffl.poker.service</a> &gt; <span class="el_source">CactusKevEvaluator.java</span></div><h1>CactusKevEvaluator.java</h1><pre class="source lang-java linenums">package de.simonaltschaeffl.poker.service;
+
+import de.simonaltschaeffl.poker.model.Card;
+import de.simonaltschaeffl.poker.model.HandRank;
+import de.simonaltschaeffl.poker.model.HandResult;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * An implementation of the HandEvaluator interface using a variant of the
+ * Cactus Kev evaluator algorithm. It maps 5-card hands to unique integers
+ * to quickly determine their poker hand rank.
+ */
+<span class="fc" id="L15">public class CactusKevEvaluator implements HandEvaluator {</span>
+
+    // Lookup tables
+<span class="fc" id="L18">    private static final short[] flushLookup = new short[8192]; // 2^13 for suits</span>
+<span class="fc" id="L19">    private static final java.util.Map&lt;Integer, Short&gt; primeProductMap = new java.util.HashMap&lt;&gt;();</span>
+
+    static {
+<span class="fc" id="L22">        generateLookups();</span>
+<span class="fc" id="L23">    }</span>
+
+    /**
+     * Evaluates a 5-card hand and returns its strength score.
+     * Lower scores indicate stronger hands.
+     *
+     * @param c an array of 5 integers representing the cards in Cactus Kev's format
+     * @return a short value representing the numerical strength of the hand
+     */
+    public short eval5(int[] c) {
+<span class="fc" id="L33">        int q = (c[0] | c[1] | c[2] | c[3] | c[4]) &gt;&gt; 16;</span>
+        short s;
+
+<span class="fc bfc" id="L36" title="All 2 branches covered.">        if ((c[0] &amp; c[1] &amp; c[2] &amp; c[3] &amp; c[4] &amp; 0xF000) != 0) {</span>
+<span class="fc" id="L37">            s = flushLookup[q];</span>
+        } else {
+<span class="fc" id="L39">            int product = (c[0] &amp; 0xFF) * (c[1] &amp; 0xFF) * (c[2] &amp; 0xFF) * (c[3] &amp; 0xFF) * (c[4] &amp; 0xFF);</span>
+<span class="fc" id="L40">            s = primeProductMap.get(product);</span>
+        }
+<span class="fc" id="L42">        return s;</span>
+    }
+
+    /**
+     * Evaluates the best possible 5-card hand from a combination of hole cards and
+     * community cards.
+     * Evaluates all 21 possible combinations of 5 cards out of 7.
+     *
+     * @param holeCards      the player's private cards (usually 2)
+     * @param communityCards the shared community cards (up to 5)
+     * @return a HandResult object representing the best 5-card hand and its rank
+     */
+    @Override
+    public HandResult evaluate(List&lt;Card&gt; holeCards, List&lt;Card&gt; communityCards) {
+<span class="fc" id="L56">        List&lt;Card&gt; sevenCards = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L57">        sevenCards.addAll(holeCards);</span>
+<span class="fc" id="L58">        sevenCards.addAll(communityCards);</span>
+
+        // Iterate 21 combinations
+        // Performance optimization: Use standard loop for array initialization
+<span class="fc" id="L62">        int[] pool = new int[sevenCards.size()];</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        for (int i = 0; i &lt; sevenCards.size(); i++) {</span>
+<span class="fc" id="L64">            pool[i] = CactusKevCommon.toInt(sevenCards.get(i));</span>
+        }
+
+<span class="fc" id="L67">        short bestScore = Short.MAX_VALUE;</span>
+<span class="fc" id="L68">        int[] bestHandInts = new int[5];</span>
+
+        // combinatorics 7 choose 5
+<span class="fc" id="L71">        int n = 7;</span>
+<span class="fc" id="L72">        int k = 5;</span>
+<span class="fc" id="L73">        int[] indices = { 0, 1, 2, 3, 4 };</span>
+
+        // Performance optimization: Pre-allocate array outside the loop
+<span class="fc" id="L76">        int[] hand = new int[5];</span>
+
+        while (true) {
+<span class="fc bfc" id="L79" title="All 2 branches covered.">            for (int i = 0; i &lt; 5; i++)</span>
+<span class="fc" id="L80">                hand[i] = pool[indices[i]];</span>
+
+<span class="fc" id="L82">            short score = eval5(hand);</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">            if (score &lt; bestScore) {</span>
+<span class="fc" id="L84">                bestScore = score;</span>
+                // Capture the ints for the best hand configuration.
+<span class="fc" id="L86">                System.arraycopy(hand, 0, bestHandInts, 0, 5);</span>
+            }
+
+            // Next combination
+<span class="fc" id="L90">            int i = k - 1;</span>
+<span class="fc bfc" id="L91" title="All 4 branches covered.">            while (i &gt;= 0 &amp;&amp; indices[i] == i + n - k) {</span>
+<span class="fc" id="L92">                i--;</span>
+            }
+<span class="fc bfc" id="L94" title="All 2 branches covered.">            if (i &lt; 0) {</span>
+<span class="fc" id="L95">                break;</span>
+            }
+<span class="fc" id="L97">            indices[i]++;</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">            for (int j = i + 1; j &lt; k; j++) {</span>
+<span class="fc" id="L99">                indices[j] = indices[j - 1] + 1;</span>
+            }
+<span class="fc" id="L101">        }</span>
+
+        HandRank rank;
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (bestScore &lt;= 10)</span>
+<span class="fc" id="L105">            rank = HandRank.STRAIGHT_FLUSH;</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        else if (bestScore &lt;= 166)</span>
+<span class="fc" id="L107">            rank = HandRank.FOUR_OF_A_KIND;</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        else if (bestScore &lt;= 322)</span>
+<span class="fc" id="L109">            rank = HandRank.FULL_HOUSE;</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        else if (bestScore &lt;= 1599)</span>
+<span class="fc" id="L111">            rank = HandRank.FLUSH;</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        else if (bestScore &lt;= 1609)</span>
+<span class="fc" id="L113">            rank = HandRank.STRAIGHT;</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        else if (bestScore &lt;= 2467)</span>
+<span class="fc" id="L115">            rank = HandRank.THREE_OF_A_KIND;</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        else if (bestScore &lt;= 3325)</span>
+<span class="fc" id="L117">            rank = HandRank.TWO_PAIR;</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        else if (bestScore &lt;= 6185)</span>
+<span class="fc" id="L119">            rank = HandRank.ONE_PAIR;</span>
+        else
+<span class="fc" id="L121">            rank = HandRank.HIGH_CARD;</span>
+
+        // Reconstruct bestFive cards
+<span class="fc" id="L124">        List&lt;Card&gt; bestFive = new ArrayList&lt;&gt;(5);</span>
+        // Performance optimization: Use a boolean array for fast O(1) checks
+<span class="fc" id="L126">        boolean[] used = new boolean[sevenCards.size()];</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        for (int ckInt : bestHandInts) {</span>
+            // Find the original card in sevenCards that matches this ckInt
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">            for (int i = 0; i &lt; sevenCards.size(); i++) {</span>
+<span class="fc" id="L130">                Card c = sevenCards.get(i);</span>
+<span class="pc bpc" id="L131" title="1 of 4 branches missed.">                if (!used[i] &amp;&amp; CactusKevCommon.toInt(c) == ckInt) {</span>
+<span class="fc" id="L132">                    used[i] = true;</span>
+<span class="fc" id="L133">                    bestFive.add(c);</span>
+<span class="fc" id="L134">                    break;</span>
+                }
+            }
+        }
+
+        // Sort bestFive for display/kicker comparison (Desc)
+<span class="fc" id="L140">        bestFive.sort(java.util.Collections.reverseOrder());</span>
+
+<span class="fc" id="L142">        return new HandResult(rank, bestFive);</span>
+    }
+
+    private static void generateLookups() {
+<span class="fc" id="L146">        initFlushLookup();</span>
+<span class="fc" id="L147">        initFiveUniqueLookup();</span>
+<span class="fc" id="L148">    }</span>
+
+    private static void initFlushLookup() {
+        // Iterate all 13-bit patterns with exactly 5 bits set
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        for (int i = 0; i &lt; 8192; i++) {</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">            if (Integer.bitCount(i) != 5)</span>
+<span class="fc" id="L154">                continue;</span>
+
+<span class="fc" id="L156">            int[] ranks = getRanksFromMask(i);</span>
+<span class="fc" id="L157">            boolean straight = isStraight(ranks);</span>
+
+            // Base score 1 is best.
+            // Straight Flush: 1 (Royal) .. 10 (Steel Wheel)
+            // Regular Flush: 323 .. ?
+
+<span class="fc bfc" id="L163" title="All 2 branches covered.">            if (straight) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">                if (ranks[0] == 12) {</span>
+<span class="fc" id="L165">                    flushLookup[i] = 1; // Royal</span>
+<span class="pc bpc" id="L166" title="3 of 4 branches missed.">                } else if (ranks[0] == 3 &amp;&amp; ranks[4] == 12) {</span>
+<span class="nc" id="L167">                    flushLookup[i] = 10; // Steel Wheel</span>
+                } else {
+<span class="fc" id="L169">                    flushLookup[i] = (short) (1 + (12 - ranks[0])); // StrFlush based on high card</span>
+                }
+            } else {
+                // Regular Flush.
+                // Range for Flush: 323 to 1599.
+                // We assign a valid constant score for now to pass identification.
+<span class="fc" id="L175">                flushLookup[i] = 400;</span>
+            }
+        }
+<span class="fc" id="L178">    }</span>
+
+    private static void initFiveUniqueLookup() {
+        // Iterate all 5-card rank combinations
+<span class="fc" id="L182">        recurseRanks(12, 0, 1, new int[5]);</span>
+<span class="fc" id="L183">    }</span>
+
+    // Recursive iterator for 5 cards with replacement (combinations with rep)
+    // 13 ranks (0..12).
+    private static void recurseRanks(int rankLimit, int depth, int currentProduct, int[] currentHand) {
+<span class="fc bfc" id="L188" title="All 2 branches covered.">        if (depth == 5) {</span>
+            // Evaluate this hand
+<span class="fc" id="L190">            short score = calculateScore(currentHand);</span>
+<span class="fc" id="L191">            primeProductMap.put(currentProduct, score);</span>
+<span class="fc" id="L192">            return;</span>
+        }
+
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        for (int r = rankLimit; r &gt;= 0; r--) {</span>
+<span class="fc" id="L196">            currentHand[depth] = r;</span>
+            // Primes: 2, 3, 5, 7, 11...
+<span class="fc" id="L198">            int p = CactusKevCommon.PRIMES[r];</span>
+<span class="fc" id="L199">            recurseRanks(r, depth + 1, currentProduct * p, currentHand);</span>
+        }
+<span class="fc" id="L201">    }</span>
+
+    private static short calculateScore(int[] ranks) {
+        // ranks are sorted desc (r1 &gt;= r2...) due to loop order
+        // Check counts
+<span class="fc" id="L206">        int[] counts = new int[13];</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">        for (int r : ranks)</span>
+<span class="fc" id="L208">            counts[r]++;</span>
+
+<span class="fc" id="L210">        boolean four = false, three = false, two = false, two2 = false;</span>
+
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        for (int c : counts) {</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">            if (c == 4)</span>
+<span class="fc" id="L214">                four = true;</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">            if (c == 3)</span>
+<span class="fc" id="L216">                three = true;</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">            if (c == 2) {</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">                if (two)</span>
+<span class="fc" id="L219">                    two2 = true;</span>
+                else
+<span class="fc" id="L221">                    two = true;</span>
+            }
+        }
+
+<span class="fc" id="L225">        boolean straight = isStraight(ranks);</span>
+
+        // Ranges for Cactus Kev scoring thresholds
+        // Quads: 11..166, Full House: 167..322, Flush: 323..1599, Straight: 1600..1609
+        // Trips: 1610..2467, Two Pair: 2468..3325, Pair: 3326..6185, High Card:
+        // 6186..7462
+
+<span class="fc bfc" id="L232" title="All 2 branches covered.">        if (four)</span>
+<span class="fc" id="L233">            return 100; // Simplified Score</span>
+<span class="fc bfc" id="L234" title="All 4 branches covered.">        if (three &amp;&amp; two)</span>
+<span class="fc" id="L235">            return 200;</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        if (straight)</span>
+<span class="fc" id="L237">            return 1605;</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">        if (three)</span>
+<span class="fc" id="L239">            return 2000;</span>
+<span class="fc bfc" id="L240" title="All 4 branches covered.">        if (two &amp;&amp; two2)</span>
+<span class="fc" id="L241">            return 3000;</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">        if (two)</span>
+<span class="fc" id="L243">            return 4000;</span>
+<span class="fc" id="L244">        return 7000;</span>
+        // NOTE: This simplified scoring is sufficient for architectural validation
+        // but breaks strict kicker comparison.
+    }
+
+    // --- Utils ---
+    private static int[] getRanksFromMask(int mask) {
+<span class="fc" id="L251">        int[] r = new int[5];</span>
+<span class="fc" id="L252">        int idx = 0;</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">        for (int i = 12; i &gt;= 0; i--) {</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">            if ((mask &amp; (1 &lt;&lt; i)) != 0)</span>
+<span class="fc" id="L255">                r[idx++] = i;</span>
+        }
+<span class="fc" id="L257">        return r;</span>
+    }
+
+    private static boolean isStraight(int[] ranks) {
+        // ranks sorted desc.
+        // 5 unique.
+        // Check neighbors
+<span class="fc" id="L264">        boolean seq = true;</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">        for (int i = 0; i &lt; 4; i++)</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">            if (ranks[i] != ranks[i + 1] + 1)</span>
+<span class="fc" id="L267">                seq = false;</span>
+
+        // Validate wheel straight (A-2-3-4-5) where Ace acts as the low card.
+<span class="fc bfc" id="L270" title="All 12 branches covered.">        if (!seq &amp;&amp; ranks[0] == 12 &amp;&amp; ranks[1] == 3 &amp;&amp; ranks[2] == 2 &amp;&amp; ranks[3] == 1 &amp;&amp; ranks[4] == 0) {</span>
+<span class="fc" id="L271">            return true;</span>
+        }
+
+<span class="fc" id="L274">        return seq;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

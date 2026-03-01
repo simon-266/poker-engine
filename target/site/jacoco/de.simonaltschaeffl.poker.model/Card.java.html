@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Card.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poker-engine</a> &gt; <a href="index.source.html" class="el_package">de.simonaltschaeffl.poker.model</a> &gt; <span class="el_source">Card.java</span></div><h1>Card.java</h1><pre class="source lang-java linenums">package de.simonaltschaeffl.poker.model;
+
+import jakarta.validation.constraints.NotNull;
+
+<span class="fc" id="L5">public record Card(@NotNull Rank rank, @NotNull Suit suit) implements Comparable&lt;Card&gt; {</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L9">        return rank.getSymbol() + suit.getSymbol();</span>
+    }
+
+    @Override
+    public int compareTo(Card o) {
+<span class="fc" id="L14">        return this.rank.getValue() - o.rank.getValue();</span>
+    }
+
+<span class="fc" id="L17">    public enum Suit {</span>
+<span class="fc" id="L18">        CLUBS(&quot;c&quot;),</span>
+<span class="fc" id="L19">        DIAMONDS(&quot;d&quot;),</span>
+<span class="fc" id="L20">        HEARTS(&quot;h&quot;),</span>
+<span class="fc" id="L21">        SPADES(&quot;s&quot;);</span>
+
+        private final String symbol;
+
+<span class="fc" id="L25">        Suit(String symbol) {</span>
+<span class="fc" id="L26">            this.symbol = symbol;</span>
+<span class="fc" id="L27">        }</span>
+
+        public String getSymbol() {
+<span class="nc" id="L30">            return symbol;</span>
+        }
+    }
+
+<span class="fc" id="L34">    public enum Rank {</span>
+<span class="fc" id="L35">        TWO(2, &quot;2&quot;),</span>
+<span class="fc" id="L36">        THREE(3, &quot;3&quot;),</span>
+<span class="fc" id="L37">        FOUR(4, &quot;4&quot;),</span>
+<span class="fc" id="L38">        FIVE(5, &quot;5&quot;),</span>
+<span class="fc" id="L39">        SIX(6, &quot;6&quot;),</span>
+<span class="fc" id="L40">        SEVEN(7, &quot;7&quot;),</span>
+<span class="fc" id="L41">        EIGHT(8, &quot;8&quot;),</span>
+<span class="fc" id="L42">        NINE(9, &quot;9&quot;),</span>
+<span class="fc" id="L43">        TEN(10, &quot;T&quot;),</span>
+<span class="fc" id="L44">        JACK(11, &quot;J&quot;),</span>
+<span class="fc" id="L45">        QUEEN(12, &quot;Q&quot;),</span>
+<span class="fc" id="L46">        KING(13, &quot;K&quot;),</span>
+<span class="fc" id="L47">        ACE(14, &quot;A&quot;);</span>
+
+        private final int value;
+        private final String symbol;
+
+<span class="fc" id="L52">        Rank(int value, String symbol) {</span>
+<span class="fc" id="L53">            this.value = value;</span>
+<span class="fc" id="L54">            this.symbol = symbol;</span>
+<span class="fc" id="L55">        }</span>
+
+        public int getValue() {
+<span class="fc" id="L58">            return value;</span>
+        }
+
+        public String getSymbol() {
+<span class="nc" id="L62">            return symbol;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

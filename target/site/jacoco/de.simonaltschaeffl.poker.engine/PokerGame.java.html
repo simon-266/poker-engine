@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PokerGame.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">poker-engine</a> &gt; <a href="index.source.html" class="el_package">de.simonaltschaeffl.poker.engine</a> &gt; <span class="el_source">PokerGame.java</span></div><h1>PokerGame.java</h1><pre class="source lang-java linenums">package de.simonaltschaeffl.poker.engine;
+
+import de.simonaltschaeffl.poker.api.GameEventListener;
+import de.simonaltschaeffl.poker.model.*;
+import de.simonaltschaeffl.poker.service.HandEvaluator;
+import de.simonaltschaeffl.poker.service.StandardHandEvaluator;
+import de.simonaltschaeffl.poker.engine.component.TimeoutManager;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * The main facade and entry point for the Poker Engine.
+ * Manages the {@link GameState}, players, and overall flow of a Texas Hold'em
+ * game.
+ * Designed to be modular and configurable via {@link PokerGameConfiguration}.
+ * Emits events to registered {@link GameEventListener}s.
+ */
+public class PokerGame {
+    private final GameState gameState;
+
+    private final List&lt;GameEventListener&gt; listeners;
+    private final int smallBlind;
+    private final int bigBlind;
+
+    private final PokerGameConfiguration config;
+    private final de.simonaltschaeffl.poker.engine.component.TableManager tableManager;
+    private final de.simonaltschaeffl.poker.engine.component.RuleEngine ruleEngine;
+    private final de.simonaltschaeffl.poker.engine.component.ActionHandler actionHandler;
+    private final de.simonaltschaeffl.poker.engine.component.RoundLifecycle roundLifecycle;
+    private final TimeoutManager timeoutManager;
+
+    /**
+     * Constructs a new PokerGame with the specified configuration, hand evaluator,
+     * and deck.
+     *
+     * @param config        The game configuration (blinds, maximum players,
+     *                      timeouts, strategies).
+     * @param handEvaluator The evaluator to use for determining hand strengths at
+     *                      showdown.
+     * @param deck          The deck to use for dealing cards.
+     */
+<span class="fc" id="L43">    public PokerGame(PokerGameConfiguration config, HandEvaluator handEvaluator, Deck deck) {</span>
+<span class="fc" id="L44">        this.gameState = new GameState();</span>
+<span class="fc" id="L45">        this.listeners = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L46">        this.config = config;</span>
+<span class="fc" id="L47">        this.smallBlind = config.getSmallBlind();</span>
+<span class="fc" id="L48">        this.bigBlind = config.getBigBlind();</span>
+
+<span class="fc" id="L50">        de.simonaltschaeffl.poker.service.PayoutCalculator payoutCalculator = new de.simonaltschaeffl.poker.service.PayoutCalculator(</span>
+<span class="fc" id="L51">                handEvaluator, config.getRakeStrategy(), listeners);</span>
+
+<span class="fc" id="L53">        this.tableManager = new de.simonaltschaeffl.poker.engine.component.TableManager(listeners,</span>
+<span class="fc" id="L54">                config.getMaxPlayers());</span>
+<span class="fc" id="L55">        this.ruleEngine = new de.simonaltschaeffl.poker.engine.component.RuleEngine(config.getBettingRuleStrategy());</span>
+<span class="fc" id="L56">        this.actionHandler = new de.simonaltschaeffl.poker.engine.component.ActionHandler(listeners, ruleEngine);</span>
+<span class="fc" id="L57">        this.roundLifecycle = new de.simonaltschaeffl.poker.engine.component.RoundLifecycle(</span>
+                gameState, deck, listeners, payoutCalculator, tableManager, actionHandler, ruleEngine,
+<span class="fc" id="L59">                config.getSmallBlind(), config.getBigBlind());</span>
+<span class="fc" id="L60">        this.timeoutManager = new TimeoutManager(config.getActionTimeoutMs(), this::performAction);</span>
+<span class="fc" id="L61">    }</span>
+
+    /**
+     * Constructs a new PokerGame with the specified configuration using default
+     * hand evaluator and deck.
+     *
+     * @param config The game configuration.
+     */
+    public PokerGame(PokerGameConfiguration config) {
+<span class="fc" id="L70">        this(config, new StandardHandEvaluator(), new Deck());</span>
+<span class="fc" id="L71">    }</span>
+
+    /**
+     * Adds a player to the game or waiting list.
+     * 
+     * @param player The player joining.
+     */
+    public void join(Player player) {
+<span class="fc" id="L79">        tableManager.join(player, gameState);</span>
+<span class="fc" id="L80">    }</span>
+
+    public void leave(Player player) {
+<span class="fc" id="L83">        tableManager.leave(player, gameState, () -&gt; performAction(player.getId(), ActionType.FOLD, 0));</span>
+<span class="fc" id="L84">    }</span>
+
+    public GameState getGameState() {
+<span class="fc" id="L87">        return gameState;</span>
+    }
+
+    public PokerGameConfiguration getConfig() {
+<span class="nc" id="L91">        return config;</span>
+    }
+
+    public int getSmallBlind() {
+<span class="nc" id="L95">        return smallBlind;</span>
+    }
+
+    public int getBigBlind() {
+<span class="nc" id="L99">        return bigBlind;</span>
+    }
+
+    public void addListener(GameEventListener listener) {
+<span class="fc" id="L103">        listeners.add(listener);</span>
+<span class="fc" id="L104">    }</span>
+
+    public void startHand() {
+<span class="fc" id="L107">        roundLifecycle.startHand();</span>
+<span class="fc" id="L108">    }</span>
+
+    // --- Game Play Actions ---
+
+    public void performAction(String playerId, ActionType type, int amount) {
+        // 1. Validation
+<span class="fc" id="L114">        Player player = gameState.getPlayers().stream()</span>
+<span class="fc" id="L115">                .filter(p -&gt; p.getId().equals(playerId))</span>
+<span class="fc" id="L116">                .findFirst()</span>
+<span class="pc" id="L117">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Player not found: &quot; + playerId));</span>
+
+<span class="fc" id="L119">        ruleEngine.validateAction(player, type, amount, bigBlind, gameState);</span>
+
+        // 2. Execution
+<span class="fc" id="L122">        actionHandler.executeAction(player, type, amount, gameState);</span>
+
+        // 3. Move Game Forward
+<span class="fc" id="L125">        roundLifecycle.advanceGame();</span>
+<span class="fc" id="L126">    }</span>
+
+    public void checkTimeouts() {
+<span class="nc" id="L129">        timeoutManager.checkTimeouts(gameState);</span>
+<span class="nc" id="L130">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

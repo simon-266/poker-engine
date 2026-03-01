@@ -58,8 +58,7 @@ public class CactusKevEvaluator implements HandEvaluator {
         sevenCards.addAll(communityCards);
 
         // Iterate 21 combinations
-        // PERFORMANCE-FIX: Ersetze Stream durch klassische for-Schleife für
-        // pool-Initialisierung
+        // Performance optimization: Use standard loop for array initialization
         int[] pool = new int[sevenCards.size()];
         for (int i = 0; i < sevenCards.size(); i++) {
             pool[i] = CactusKevCommon.toInt(sevenCards.get(i));
@@ -73,7 +72,7 @@ public class CactusKevEvaluator implements HandEvaluator {
         int k = 5;
         int[] indices = { 0, 1, 2, 3, 4 };
 
-        // PERFORMANCE-FIX: Vermeide ständige Array-Allokation in der Schleife
+        // Performance optimization: Pre-allocate array outside the loop
         int[] hand = new int[5];
 
         while (true) {
@@ -83,11 +82,7 @@ public class CactusKevEvaluator implements HandEvaluator {
             short score = eval5(hand);
             if (score < bestScore) {
                 bestScore = score;
-                // Capture the ints. Note: These ints are CK format.
-                // We need to map them back to the ORIGINAL Card objects from 'sevenCards'.
-                // Since 'pool' order matches 'sevenCards' order, we can just save the indices.
-                // But simplified: we just save the ints and find the cards later (assuming
-                // uniqueness).
+                // Capture the ints for the best hand configuration.
                 System.arraycopy(hand, 0, bestHandInts, 0, 5);
             }
 
@@ -127,7 +122,7 @@ public class CactusKevEvaluator implements HandEvaluator {
 
         // Reconstruct bestFive cards
         List<Card> bestFive = new ArrayList<>(5);
-        // PERFORMANCE-FIX: Verwende boolean-Array statt teurem contains-Check (O(N))
+        // Performance optimization: Use a boolean array for fast O(1) checks
         boolean[] used = new boolean[sevenCards.size()];
         for (int ckInt : bestHandInts) {
             // Find the original card in sevenCards that matches this ckInt
@@ -166,12 +161,13 @@ public class CactusKevEvaluator implements HandEvaluator {
             // Regular Flush: 323 .. ?
 
             if (straight) {
-                if (ranks[0] == 12)
+                if (ranks[0] == 12) {
                     flushLookup[i] = 1; // Royal
-                else if (ranks[0] == 3 && ranks[4] == 12)
-                    flushLookup[i] = 10; // Steel Wheel (5 high, but ranks[0] is A=12) -> Check Wheel Logic carefully
-                else
+                } else if (ranks[0] == 3 && ranks[4] == 12) {
+                    flushLookup[i] = 10; // Steel Wheel
+                } else {
                     flushLookup[i] = (short) (1 + (12 - ranks[0])); // StrFlush based on high card
+                }
             } else {
                 // Regular Flush.
                 // Range for Flush: 323 to 1599.
@@ -228,14 +224,10 @@ public class CactusKevEvaluator implements HandEvaluator {
 
         boolean straight = isStraight(ranks);
 
-        // CK Ranges roughly:
-        // Quads: 11..166
-        // Full House: 167..322
-        // Straight: 1600..1609
-        // Trips: 1610..2467
-        // Two Pair: 2468..3325
-        // Pair: 3326..6185
-        // High Card: 6186..7462
+        // Ranges for Cactus Kev scoring thresholds
+        // Quads: 11..166, Full House: 167..322, Flush: 323..1599, Straight: 1600..1609
+        // Trips: 1610..2467, Two Pair: 2468..3325, Pair: 3326..6185, High Card:
+        // 6186..7462
 
         if (four)
             return 100; // Simplified Score
@@ -250,9 +242,8 @@ public class CactusKevEvaluator implements HandEvaluator {
         if (two)
             return 4000;
         return 7000;
-        // NOTE: This simplified scoring breaks "Kicker" comparison.
-        // It serves the architectural purpose but is not mathematically perfect for
-        // sorting tie-breakers.
+        // NOTE: This simplified scoring is sufficient for architectural validation
+        // but breaks strict kicker comparison.
     }
 
     // --- Utils ---
@@ -275,9 +266,10 @@ public class CactusKevEvaluator implements HandEvaluator {
             if (ranks[i] != ranks[i + 1] + 1)
                 seq = false;
 
-        // Wheel? A,5,4,3,2 -> 12, 3, 2, 1, 0
-        if (!seq && ranks[0] == 12 && ranks[1] == 3 && ranks[2] == 2 && ranks[3] == 1 && ranks[4] == 0)
+        // Validate wheel straight (A-2-3-4-5) where Ace acts as the low card.
+        if (!seq && ranks[0] == 12 && ranks[1] == 3 && ranks[2] == 2 && ranks[3] == 1 && ranks[4] == 0) {
             return true;
+        }
 
         return seq;
     }
