@@ -1,4 +1,4 @@
-package de.simonaltschaeffl.poker.engine.component;
+package de.simonaltschaeffl.poker.engine;
 
 import de.simonaltschaeffl.poker.model.ActionType;
 import de.simonaltschaeffl.poker.model.GameState;
@@ -20,7 +20,7 @@ import java.util.Set;
  * {@link BettingRuleStrategy}.
  * It also determines when a betting round is complete.
  */
-public class RuleEngine {
+class RuleEngine {
 
     private final BettingRuleStrategy bettingRuleStrategy;
 

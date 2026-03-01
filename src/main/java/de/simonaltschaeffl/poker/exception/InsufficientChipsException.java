@@ -5,6 +5,10 @@ package de.simonaltschaeffl.poker.exception;
  * current chip stack.
  */
 public class InsufficientChipsException extends PokerException {
+    /**
+     * Constructs a new InsufficientChipsException.
+     * @param message The error message.
+     */
     public InsufficientChipsException(String message) {
         super(message);
     }

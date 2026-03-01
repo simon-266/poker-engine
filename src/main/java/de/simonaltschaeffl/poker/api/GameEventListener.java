@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+    /**
+     * Documentation.
+     */
 public interface GameEventListener {
 
     /**
@@ -26,6 +29,8 @@ public interface GameEventListener {
      * board updated,
      * bets collected, hand finished). Highly useful for WebSocket clients to just
      * pull `GameStateDTO.from()`.
+     *
+     * @param gameState The updated {@link GameState}.
      */
     void onGameStateChanged(GameState gameState);
 

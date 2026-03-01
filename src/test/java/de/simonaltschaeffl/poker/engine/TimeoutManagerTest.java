@@ -1,7 +1,7 @@
-package de.simonaltschaeffl.poker;
+package de.simonaltschaeffl.poker.engine;
 
-import de.simonaltschaeffl.poker.engine.component.TimeoutManager;
 import de.simonaltschaeffl.poker.model.ActionType;
+import de.simonaltschaeffl.poker.TestPlayer;
 import de.simonaltschaeffl.poker.model.GameState;
 import de.simonaltschaeffl.poker.model.Player;
 import org.junit.jupiter.api.Test;

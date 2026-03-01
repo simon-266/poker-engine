@@ -1,4 +1,4 @@
-package de.simonaltschaeffl.poker.engine.component;
+package de.simonaltschaeffl.poker.engine;
 
 import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.model.ActionType;
@@ -20,7 +20,7 @@ import java.util.List;
  * Note: This class assumes that actions have already been validated by the
  * {@link RuleEngine} before execution.
  */
-public class ActionHandler {
+class ActionHandler {
     private final List<GameEventListener> listeners;
     private final RuleEngine ruleEngine;
 

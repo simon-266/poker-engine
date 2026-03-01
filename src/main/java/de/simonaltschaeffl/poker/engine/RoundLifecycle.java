@@ -1,4 +1,4 @@
-package de.simonaltschaeffl.poker.engine.component;
+package de.simonaltschaeffl.poker.engine;
 
 import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.model.ActionType;
@@ -17,7 +17,7 @@ import java.util.List;
  * transitioning through the game phases
  * (PRE_FLOP, FLOP, TURN, RIVER, SHOWDOWN).
  */
-public class RoundLifecycle {
+class RoundLifecycle {
     private final GameContext context;
 
     public RoundLifecycle(GameContext context) {

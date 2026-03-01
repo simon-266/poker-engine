@@ -5,6 +5,10 @@ package de.simonaltschaeffl.poker.exception;
  * Hold'em.
  */
 public class TooManyHoleCardsException extends PokerException {
+    /**
+     * Constructs a new TooManyHoleCardsException.
+     * @param message The error message.
+     */
     public TooManyHoleCardsException(String message) {
         super(message);
     }

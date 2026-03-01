@@ -1,4 +1,4 @@
-package de.simonaltschaeffl.poker.engine.component;
+package de.simonaltschaeffl.poker.engine;
 
 import de.simonaltschaeffl.poker.model.ActionType;
 import de.simonaltschaeffl.poker.model.GameState;

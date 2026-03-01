@@ -9,6 +9,21 @@
 
   <name>poker-engine</name>
   <url>https://github.com/simon-266/poker-engine</url>
+  <description>A lightweight, dependency-free Texas Hold'em Poker Engine for Java applications.</description>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:https://github.com/simon-266/poker-engine.git</connection>
+    <developerConnection>scm:git:ssh://github.com/simon-266/poker-engine.git</developerConnection>
+    <url>https://github.com/simon-266/poker-engine</url>
+  </scm>
 
   <developers>
     <developer>
@@ -111,6 +126,51 @@
             <phase>validate</phase>
             <goals>
               <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.6.3</version>
+        <configuration>
+          <doclint>all,-missing</doclint>
+          <showWarnings>false</showWarnings>
+          <quiet>true</quiet>
+        </configuration>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>3.2.3</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
             </goals>
           </execution>
         </executions>

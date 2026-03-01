@@ -5,6 +5,10 @@ package de.simonaltschaeffl.poker.exception;
  * identifies that it is another player's turn.
  */
 public class NotYourTurnException extends PokerException {
+    /**
+     * Constructs a new NotYourTurnException.
+     * @param message The error message.
+     */
     public NotYourTurnException(String message) {
         super(message);
     }

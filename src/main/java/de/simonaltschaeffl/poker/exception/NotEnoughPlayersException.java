@@ -5,6 +5,10 @@ package de.simonaltschaeffl.poker.exception;
  * required number of players (typically 2).
  */
 public class NotEnoughPlayersException extends PokerException {
+    /**
+     * Constructs a new NotEnoughPlayersException.
+     * @param message The error message.
+     */
     public NotEnoughPlayersException(String message) {
         super(message);
     }

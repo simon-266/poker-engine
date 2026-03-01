@@ -5,6 +5,10 @@ package de.simonaltschaeffl.poker.exception;
  * player capacity.
  */
 public class GameFullException extends PokerException {
+    /**
+     * Constructs a new GameFullException.
+     * @param message The error message.
+     */
     public GameFullException(String message) {
         super(message);
     }

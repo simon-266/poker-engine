@@ -1,4 +1,4 @@
-package de.simonaltschaeffl.poker.engine.component;
+package de.simonaltschaeffl.poker.engine;
 
 import de.simonaltschaeffl.poker.model.ActionType;
 import de.simonaltschaeffl.poker.model.GameState;
@@ -9,7 +9,7 @@ import de.simonaltschaeffl.poker.model.PlayerStatus;
  * Monitors the elapsed time since a player's turn started.
  * If the configured timeout is exceeded, automatically forces a check or fold.
  */
-public class TimeoutManager {
+class TimeoutManager {
     private final long actionTimeoutMs;
     // Functional interface to safely trigger actions without circular dependencies
     private final ActionTrigger actionTrigger;

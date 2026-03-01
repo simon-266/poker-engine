@@ -1,4 +1,4 @@
-package de.simonaltschaeffl.poker.engine.component;
+package de.simonaltschaeffl.poker.engine;
 
 import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.model.Deck;
@@ -11,7 +11,7 @@ import java.util.List;
  * Encapsulates the core dependencies and configuration values required
  * during the lifecycle of a poker round.
  */
-public record GameContext(
+record GameContext(
         GameState gameState,
         Deck deck,
         List<GameEventListener> listeners,

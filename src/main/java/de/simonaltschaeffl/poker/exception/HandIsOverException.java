@@ -5,6 +5,10 @@ package de.simonaltschaeffl.poker.exception;
  * already ended or reached showdown.
  */
 public class HandIsOverException extends PokerException {
+    /**
+     * Constructs a new HandIsOverException.
+     * @param message The error message.
+     */
     public HandIsOverException(String message) {
         super(message);
     }

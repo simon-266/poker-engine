@@ -4,8 +4,6 @@ import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.model.*;
 import de.simonaltschaeffl.poker.service.HandEvaluator;
 import de.simonaltschaeffl.poker.service.StandardHandEvaluator;
-import de.simonaltschaeffl.poker.engine.component.TimeoutManager;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,10 +22,10 @@ public class PokerGame {
     private final int bigBlind;
 
     private final PokerGameConfiguration config;
-    private final de.simonaltschaeffl.poker.engine.component.TableManager tableManager;
-    private final de.simonaltschaeffl.poker.engine.component.RuleEngine ruleEngine;
-    private final de.simonaltschaeffl.poker.engine.component.ActionHandler actionHandler;
-    private final de.simonaltschaeffl.poker.engine.component.RoundLifecycle roundLifecycle;
+    private final TableManager tableManager;
+    private final RuleEngine ruleEngine;
+    private final ActionHandler actionHandler;
+    private final RoundLifecycle roundLifecycle;
     private final TimeoutManager timeoutManager;
 
     private final java.util.concurrent.locks.ReentrantLock lock = new java.util.concurrent.locks.ReentrantLock();
@@ -52,15 +50,15 @@ public class PokerGame {
         de.simonaltschaeffl.poker.service.PayoutCalculator payoutCalculator = new de.simonaltschaeffl.poker.service.PayoutCalculator(
                 handEvaluator, config.getRakeStrategy(), listeners);
 
-        this.tableManager = new de.simonaltschaeffl.poker.engine.component.TableManager(listeners,
+        this.tableManager = new TableManager(listeners,
                 config.getMaxPlayers());
-        this.ruleEngine = new de.simonaltschaeffl.poker.engine.component.RuleEngine(config.getBettingRuleStrategy());
-        this.actionHandler = new de.simonaltschaeffl.poker.engine.component.ActionHandler(listeners, ruleEngine);
+        this.ruleEngine = new RuleEngine(config.getBettingRuleStrategy());
+        this.actionHandler = new ActionHandler(listeners, ruleEngine);
 
-        de.simonaltschaeffl.poker.engine.component.GameContext context = new de.simonaltschaeffl.poker.engine.component.GameContext(
+        GameContext context = new GameContext(
                 gameState, deck, listeners, payoutCalculator, tableManager, actionHandler, ruleEngine,
                 config.getSmallBlind(), config.getBigBlind());
-        this.roundLifecycle = new de.simonaltschaeffl.poker.engine.component.RoundLifecycle(context);
+        this.roundLifecycle = new RoundLifecycle(context);
         this.timeoutManager = new TimeoutManager(config.getActionTimeoutMs(), this::performAction);
     }
 
@@ -88,6 +86,12 @@ public class PokerGame {
         }
     }
 
+    /**
+     * Removes a player from the game.
+     * If the player is currently in an active hand, they automatically fold.
+     *
+     * @param player The player to remove.
+     */
     public void leave(Player player) {
         lock.lock();
         try {
@@ -97,26 +101,55 @@ public class PokerGame {
         }
     }
 
+    /**
+     * Gets the current observable state of the game.
+     *
+     * @return The {@link GameState}.
+     */
     public GameState getGameState() {
         return gameState;
     }
 
+    /**
+     * Gets the current configuration of the poker game.
+     *
+     * @return The {@link PokerGameConfiguration}.
+     */
     public PokerGameConfiguration getConfig() {
         return config;
     }
 
+    /**
+     * Retrieves the amount of the small blind for the game.
+     *
+     * @return The small blind amount.
+     */
     public int getSmallBlind() {
         return smallBlind;
     }
 
+    /**
+     * Retrieves the amount of the big blind for the game.
+     *
+     * @return The big blind amount.
+     */
     public int getBigBlind() {
         return bigBlind;
     }
 
+    /**
+     * Adds an event listener to observe game events.
+     *
+     * @param listener The {@link GameEventListener} to add.
+     */
     public void addListener(GameEventListener listener) {
         listeners.add(listener);
     }
 
+    /**
+     * Triggers the start of a new poker hand.
+     * Deals cards and posts blinds if there are enough players.
+     */
     public void startHand() {
         lock.lock();
         try {
@@ -128,6 +161,15 @@ public class PokerGame {
 
     // --- Game Play Actions ---
 
+    /**
+     * Performs a player action (e.g., BET, CALL, FOLD, CHECK).
+     *
+     * @param playerId The ID of the player attempting to perform the action.
+     * @param type     The {@link ActionType} being performed.
+     * @param amount   The amount of chips involved in the action (can be 0 for
+     *                 CHECK/FOLD).
+     * @throws IllegalArgumentException if the player is not found.
+     */
     public void performAction(String playerId, ActionType type, int amount) {
         lock.lock();
         try {
@@ -149,6 +191,10 @@ public class PokerGame {
         }
     }
 
+    /**
+     * Actively checks if the current acting player's turn has timed out.
+     * If they have timed out, a default action (Check or Fold) is forced.
+     */
     public void checkTimeouts() {
         lock.lock();
         try {

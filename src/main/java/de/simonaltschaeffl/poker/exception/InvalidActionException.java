@@ -5,6 +5,10 @@ package de.simonaltschaeffl.poker.exception;
  * (e.g. attempting to CHECK when a player has an outstanding call amount).
  */
 public class InvalidActionException extends PokerException {
+    /**
+     * Constructs a new InvalidActionException.
+     * @param message The error message.
+     */
     public InvalidActionException(String message) {
         super(message);
     }

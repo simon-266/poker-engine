@@ -1,4 +1,4 @@
-package de.simonaltschaeffl.poker.engine.component;
+package de.simonaltschaeffl.poker.engine;
 
 import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.model.GameState;
@@ -11,7 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-public class TableManager {
+class TableManager {
     private final int maxPlayers;
 
     private final Queue<Player> waitingPlayers;
