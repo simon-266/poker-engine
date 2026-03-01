@@ -2,7 +2,6 @@ package de.simonaltschaeffl.poker.engine.component;
 
 import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.model.ActionType;
-import de.simonaltschaeffl.poker.model.Deck;
 import de.simonaltschaeffl.poker.model.GameState;
 import de.simonaltschaeffl.poker.model.Player;
 import de.simonaltschaeffl.poker.model.PlayerStatus;
@@ -19,29 +18,10 @@ import java.util.List;
  * (PRE_FLOP, FLOP, TURN, RIVER, SHOWDOWN).
  */
 public class RoundLifecycle {
-    private final GameState gameState;
-    private final Deck deck;
-    private final List<GameEventListener> listeners;
-    private final PayoutCalculator payoutCalculator;
-    private final TableManager tableManager;
-    private final ActionHandler actionHandler;
-    private final RuleEngine ruleEngine;
-    private final int smallBlind;
-    private final int bigBlind;
+    private final GameContext context;
 
-    public RoundLifecycle(GameState gameState, Deck deck, List<GameEventListener> listeners,
-            PayoutCalculator payoutCalculator, TableManager tableManager,
-            ActionHandler actionHandler, RuleEngine ruleEngine,
-            int smallBlind, int bigBlind) {
-        this.gameState = gameState;
-        this.deck = deck;
-        this.listeners = listeners;
-        this.payoutCalculator = payoutCalculator;
-        this.tableManager = tableManager;
-        this.actionHandler = actionHandler;
-        this.ruleEngine = ruleEngine;
-        this.smallBlind = smallBlind;
-        this.bigBlind = bigBlind;
+    public RoundLifecycle(GameContext context) {
+        this.context = context;
     }
 
     /**
@@ -58,58 +38,60 @@ public class RoundLifecycle {
      *                                   attempting to start.
      */
     public void startHand() {
-        if (gameState.getPlayers().size() < 2) {
+        if (context.gameState().getPlayers().size() < 2) {
             throw new NotEnoughPlayersException("Not enough players");
         }
 
         // 0. Process Joins and Leaves
-        tableManager.processSeatings(gameState);
+        context.tableManager().processSeatings(context.gameState());
 
-        if (gameState.getPlayers().size() < 2) {
-            gameState.setPhase(GameState.GamePhase.PRE_GAME);
+        if (context.gameState().getPlayers().size() < 2) {
+            context.gameState().setPhase(GameState.GamePhase.PRE_GAME);
             return;
         }
 
         notifyGameStarted();
 
         // 1. Reset
-        deck.reset();
-        gameState.clearBoard();
-        gameState.getPot().reset();
-        gameState.setPhase(GameState.GamePhase.PRE_FLOP);
+        context.deck().reset();
+        context.gameState().clearBoard();
+        context.gameState().getPot().reset();
+        context.gameState().setPhase(GameState.GamePhase.PRE_FLOP);
 
         // 2. Deal Hole Cards
-        for (Player p : gameState.getPlayers()) {
+        for (Player p : context.gameState().getPlayers()) {
             p.clearHoleCards();
             p.setStatus(PlayerStatus.ACTIVE);
-            deck.deal().ifPresent(p::addHoleCard);
-            deck.deal().ifPresent(p::addHoleCard);
+            context.deck().deal().ifPresent(p::addHoleCard);
+            context.deck().deal().ifPresent(p::addHoleCard);
         }
 
         // 3. Post Blinds
         int sbPos, bbPos;
-        int numPlayers = gameState.getPlayers().size();
+        int numPlayers = context.gameState().getPlayers().size();
 
         if (numPlayers == 2) {
-            sbPos = gameState.getDealerButtonPosition();
+            sbPos = context.gameState().getDealerButtonPosition();
             bbPos = (sbPos + 1) % numPlayers;
         } else {
-            sbPos = (gameState.getDealerButtonPosition() + 1) % numPlayers;
+            sbPos = (context.gameState().getDealerButtonPosition() + 1) % numPlayers;
             bbPos = (sbPos + 1) % numPlayers;
         }
 
-        actionHandler.postBlind(gameState.getPlayers().get(sbPos), smallBlind, ActionType.SMALL_BLIND, gameState);
-        actionHandler.postBlind(gameState.getPlayers().get(bbPos), bigBlind, ActionType.BIG_BLIND, gameState);
+        context.actionHandler().postBlind(context.gameState().getPlayers().get(sbPos), context.smallBlind(),
+                ActionType.SMALL_BLIND, context.gameState());
+        context.actionHandler().postBlind(context.gameState().getPlayers().get(bbPos), context.bigBlind(),
+                ActionType.BIG_BLIND, context.gameState());
 
         notifyRoundStarted("PRE_FLOP");
 
         // Action starts left of BB
-        gameState.clearActedPlayers();
+        context.gameState().clearActedPlayers();
         int firstActionPos = (numPlayers == 2) ? sbPos : (bbPos + 1) % numPlayers;
-        gameState.setCurrentActionPosition(firstActionPos);
+        context.gameState().setCurrentActionPosition(firstActionPos);
 
         notifyGameStateChanged();
-        notifyPlayerTurn(gameState.getPlayers().get(firstActionPos));
+        notifyPlayerTurn(context.gameState().getPlayers().get(firstActionPos));
     }
 
     /**
@@ -130,7 +112,7 @@ public class RoundLifecycle {
         // Find the active player and count simultaneously for optimization
         long activeCount = 0;
         Player winner = null;
-        for (Player p : gameState.getPlayers()) {
+        for (Player p : context.gameState().getPlayers()) {
             if (p.getStatus() == PlayerStatus.ACTIVE || p.getStatus() == PlayerStatus.ALL_IN) {
                 activeCount++;
                 if (winner == null) {
@@ -144,38 +126,40 @@ public class RoundLifecycle {
             return;
         }
 
-        gameState.getPlayers().forEach(Player::resetBet);
-        gameState.clearActedPlayers();
-        gameState.setCurrentActionPosition((gameState.getDealerButtonPosition() + 1) % gameState.getPlayers().size());
+        context.gameState().getPlayers().forEach(Player::resetBet);
+        context.gameState().clearActedPlayers();
+        context.gameState().setCurrentActionPosition(
+                (context.gameState().getDealerButtonPosition() + 1) % context.gameState().getPlayers().size());
 
         // Reset action to first ACTIVE player
-        if (gameState.getPlayers().get(gameState.getCurrentActionPosition()).getStatus() != PlayerStatus.ACTIVE) {
+        if (context.gameState().getPlayers().get(context.gameState().getCurrentActionPosition())
+                .getStatus() != PlayerStatus.ACTIVE) {
             moveActionToNextPlayer();
         }
 
-        switch (gameState.getPhase()) {
+        switch (context.gameState().getPhase()) {
             case PRE_FLOP -> {
-                gameState.setPhase(GameState.GamePhase.FLOP);
-                gameState.addToBoard(deck.deal().orElseThrow());
-                gameState.addToBoard(deck.deal().orElseThrow());
-                gameState.addToBoard(deck.deal().orElseThrow());
+                context.gameState().setPhase(GameState.GamePhase.FLOP);
+                context.gameState().addToBoard(context.deck().deal().orElseThrow());
+                context.gameState().addToBoard(context.deck().deal().orElseThrow());
+                context.gameState().addToBoard(context.deck().deal().orElseThrow());
                 notifyRoundStarted("FLOP");
                 checkAutoAdvance();
             }
             case FLOP -> {
-                gameState.setPhase(GameState.GamePhase.TURN);
-                gameState.addToBoard(deck.deal().orElseThrow());
+                context.gameState().setPhase(GameState.GamePhase.TURN);
+                context.gameState().addToBoard(context.deck().deal().orElseThrow());
                 notifyRoundStarted("TURN");
                 checkAutoAdvance();
             }
             case TURN -> {
-                gameState.setPhase(GameState.GamePhase.RIVER);
-                gameState.addToBoard(deck.deal().orElseThrow());
+                context.gameState().setPhase(GameState.GamePhase.RIVER);
+                context.gameState().addToBoard(context.deck().deal().orElseThrow());
                 notifyRoundStarted("RIVER");
                 checkAutoAdvance();
             }
             case RIVER -> {
-                gameState.setPhase(GameState.GamePhase.SHOWDOWN);
+                context.gameState().setPhase(GameState.GamePhase.SHOWDOWN);
                 handleShowdown();
             }
             case SHOWDOWN, HAND_ENDED -> {
@@ -183,9 +167,9 @@ public class RoundLifecycle {
             case PRE_GAME -> throw new HandIsOverException("Cannot transition from PRE_GAME without startHand()");
         }
         notifyGameStateChanged();
-        if (gameState.getPhase() != GameState.GamePhase.SHOWDOWN
-                && gameState.getPhase() != GameState.GamePhase.HAND_ENDED) {
-            notifyPlayerTurn(gameState.getPlayers().get(gameState.getCurrentActionPosition()));
+        if (context.gameState().getPhase() != GameState.GamePhase.SHOWDOWN
+                && context.gameState().getPhase() != GameState.GamePhase.HAND_ENDED) {
+            notifyPlayerTurn(context.gameState().getPlayers().get(context.gameState().getCurrentActionPosition()));
         }
     }
 
@@ -196,7 +180,7 @@ public class RoundLifecycle {
      * pointer to the next active player who needs to act.
      */
     public void advanceGame() {
-        if (ruleEngine.isRoundComplete(gameState)) {
+        if (context.ruleEngine().isRoundComplete(context.gameState())) {
             transitionPhase();
         } else {
             moveActionToNextPlayer();
@@ -204,23 +188,23 @@ public class RoundLifecycle {
     }
 
     private void moveActionToNextPlayer() {
-        int startPos = gameState.getCurrentActionPosition();
-        int nextIdx = (startPos + 1) % gameState.getPlayers().size();
+        int startPos = context.gameState().getCurrentActionPosition();
+        int nextIdx = (startPos + 1) % context.gameState().getPlayers().size();
 
         int attempts = 0;
-        while (gameState.getPlayers().get(nextIdx).getStatus() != PlayerStatus.ACTIVE
-                && attempts < gameState.getPlayers().size()) {
-            nextIdx = (nextIdx + 1) % gameState.getPlayers().size();
+        while (context.gameState().getPlayers().get(nextIdx).getStatus() != PlayerStatus.ACTIVE
+                && attempts < context.gameState().getPlayers().size()) {
+            nextIdx = (nextIdx + 1) % context.gameState().getPlayers().size();
             attempts++;
         }
-        gameState.setCurrentActionPosition(nextIdx);
-        notifyPlayerTurn(gameState.getPlayers().get(nextIdx));
+        context.gameState().setCurrentActionPosition(nextIdx);
+        notifyPlayerTurn(context.gameState().getPlayers().get(nextIdx));
     }
 
     private void checkAutoAdvance() {
         // Count active players without stream overhead
         long activeCount = 0;
-        for (Player p : gameState.getPlayers()) {
+        for (Player p : context.gameState().getPlayers()) {
             if (p.getStatus() == PlayerStatus.ACTIVE) {
                 activeCount++;
             }
@@ -231,46 +215,48 @@ public class RoundLifecycle {
     }
 
     private void handleWinByFold(Player winner) {
-        int pot = gameState.getPot().getTotal();
+        int pot = context.gameState().getPot().getTotal();
         winner.win(pot);
         notifyHandEnded(List.of(winner), java.util.Map.of(winner.getId(), pot));
-        gameState.setPhase(GameState.GamePhase.HAND_ENDED);
+        context.gameState().setPhase(GameState.GamePhase.HAND_ENDED);
     }
 
     private void handleShowdown() {
-        PayoutCalculator.ShowdownResult result = payoutCalculator
-                .calculate(gameState.getPlayers(), gameState.getBoard(), gameState.getPot());
+        PayoutCalculator.ShowdownResult result = context.payoutCalculator()
+                .calculate(context.gameState().getPlayers(), context.gameState().getBoard(),
+                        context.gameState().getPot());
 
         // Apply payouts
         for (java.util.Map.Entry<String, Integer> entry : result.payouts().entrySet()) {
-            gameState.getPlayers().stream()
+            context.gameState().getPlayers().stream()
                     .filter(pl -> pl.getId().equals(entry.getKey()))
                     .findFirst()
                     .ifPresent(p -> p.win(entry.getValue()));
         }
 
         notifyHandEnded(result.winners(), result.payouts());
-        gameState.setPhase(GameState.GamePhase.HAND_ENDED);
+        context.gameState().setPhase(GameState.GamePhase.HAND_ENDED);
     }
 
     private void notifyGameStarted() {
-        listeners.forEach(GameEventListener::onGameStarted);
+        context.listeners().forEach(GameEventListener::onGameStarted);
     }
 
     private void notifyRoundStarted(String round) {
-        listeners.forEach(l -> l.onRoundStarted(round));
+        context.listeners().forEach(l -> l.onRoundStarted(round));
     }
 
     private void notifyHandEnded(List<Player> winners, java.util.Map<String, Integer> payouts) {
-        listeners.forEach(l -> l.onHandEnded(winners, payouts));
+        context.listeners().forEach(l -> l.onHandEnded(winners, payouts));
     }
 
     private void notifyGameStateChanged() {
-        listeners.forEach(l -> l.onGameStateChanged(gameState));
+        context.listeners().forEach(l -> l.onGameStateChanged(context.gameState()));
     }
 
     private void notifyPlayerTurn(Player player) {
-        gameState.setCurrentTurnStartTime(System.currentTimeMillis());
-        listeners.forEach(l -> l.onPlayerTurn(player, ruleEngine.getAllowedActions(player, gameState)));
+        context.gameState().setCurrentTurnStartTime(System.currentTimeMillis());
+        context.listeners().forEach(
+                l -> l.onPlayerTurn(player, context.ruleEngine().getAllowedActions(player, context.gameState())));
     }
 }

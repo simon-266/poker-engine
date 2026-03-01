@@ -30,6 +30,8 @@ public class PokerGame {
     private final de.simonaltschaeffl.poker.engine.component.RoundLifecycle roundLifecycle;
     private final TimeoutManager timeoutManager;
 
+    private final java.util.concurrent.locks.ReentrantLock lock = new java.util.concurrent.locks.ReentrantLock();
+
     /**
      * Constructs a new PokerGame with the specified configuration, hand evaluator,
      * and deck.
@@ -54,9 +56,11 @@ public class PokerGame {
                 config.getMaxPlayers());
         this.ruleEngine = new de.simonaltschaeffl.poker.engine.component.RuleEngine(config.getBettingRuleStrategy());
         this.actionHandler = new de.simonaltschaeffl.poker.engine.component.ActionHandler(listeners, ruleEngine);
-        this.roundLifecycle = new de.simonaltschaeffl.poker.engine.component.RoundLifecycle(
+
+        de.simonaltschaeffl.poker.engine.component.GameContext context = new de.simonaltschaeffl.poker.engine.component.GameContext(
                 gameState, deck, listeners, payoutCalculator, tableManager, actionHandler, ruleEngine,
                 config.getSmallBlind(), config.getBigBlind());
+        this.roundLifecycle = new de.simonaltschaeffl.poker.engine.component.RoundLifecycle(context);
         this.timeoutManager = new TimeoutManager(config.getActionTimeoutMs(), this::performAction);
     }
 
@@ -76,11 +80,21 @@ public class PokerGame {
      * @param player The player joining.
      */
     public void join(Player player) {
-        tableManager.join(player, gameState);
+        lock.lock();
+        try {
+            tableManager.join(player, gameState);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void leave(Player player) {
-        tableManager.leave(player, gameState, () -> performAction(player.getId(), ActionType.FOLD, 0));
+        lock.lock();
+        try {
+            tableManager.leave(player, gameState, () -> performAction(player.getId(), ActionType.FOLD, 0));
+        } finally {
+            lock.unlock();
+        }
     }
 
     public GameState getGameState() {
@@ -104,28 +118,43 @@ public class PokerGame {
     }
 
     public void startHand() {
-        roundLifecycle.startHand();
+        lock.lock();
+        try {
+            roundLifecycle.startHand();
+        } finally {
+            lock.unlock();
+        }
     }
 
     // --- Game Play Actions ---
 
     public void performAction(String playerId, ActionType type, int amount) {
-        // 1. Validation
-        Player player = gameState.getPlayers().stream()
-                .filter(p -> p.getId().equals(playerId))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Player not found: " + playerId));
+        lock.lock();
+        try {
+            // 1. Validation
+            Player player = gameState.getPlayers().stream()
+                    .filter(p -> p.getId().equals(playerId))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Player not found: " + playerId));
 
-        ruleEngine.validateAction(player, type, amount, bigBlind, gameState);
+            ruleEngine.validateAction(player, type, amount, bigBlind, gameState);
 
-        // 2. Execution
-        actionHandler.executeAction(player, type, amount, gameState);
+            // 2. Execution
+            actionHandler.executeAction(player, type, amount, gameState);
 
-        // 3. Move Game Forward
-        roundLifecycle.advanceGame();
+            // 3. Move Game Forward
+            roundLifecycle.advanceGame();
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void checkTimeouts() {
-        timeoutManager.checkTimeouts(gameState);
+        lock.lock();
+        try {
+            timeoutManager.checkTimeouts(gameState);
+        } finally {
+            lock.unlock();
+        }
     }
 }

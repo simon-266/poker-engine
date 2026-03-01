@@ -84,6 +84,17 @@ public class CactusKevEvaluator implements HandEvaluator {
                 bestScore = score;
                 // Capture the ints for the best hand configuration.
                 System.arraycopy(hand, 0, bestHandInts, 0, 5);
+            } else if (score == bestScore && score < Short.MAX_VALUE) {
+                // Secondary comparison using HandResult logic for kickers
+                int[] currentHandInts = new int[5];
+                System.arraycopy(hand, 0, currentHandInts, 0, 5);
+                List<Card> currentCards = intsToCards(currentHandInts, sevenCards);
+                List<Card> bestCards = intsToCards(bestHandInts, sevenCards);
+                HandResult currentRes = new HandResult(HandRank.HIGH_CARD, currentCards);
+                HandResult bestRes = new HandResult(HandRank.HIGH_CARD, bestCards);
+                if (currentRes.compareTo(bestRes) > 0) {
+                    System.arraycopy(hand, 0, bestHandInts, 0, 5);
+                }
             }
 
             // Next combination
@@ -121,25 +132,37 @@ public class CactusKevEvaluator implements HandEvaluator {
             rank = HandRank.HIGH_CARD;
 
         // Reconstruct bestFive cards
-        List<Card> bestFive = new ArrayList<>(5);
-        // Performance optimization: Use a boolean array for fast O(1) checks
+        List<Card> bestFive = intsToCards(bestHandInts, sevenCards);
+
+        // Sort bestFive for display/kicker comparison (Desc by frequency then rank)
+        java.util.Map<Integer, Integer> freq = new java.util.HashMap<>();
+        for (Card c : bestFive)
+            freq.merge(c.rank().getValue(), 1, Integer::sum);
+        bestFive.sort((c1, c2) -> {
+            int f1 = freq.get(c1.rank().getValue());
+            int f2 = freq.get(c2.rank().getValue());
+            if (f1 != f2)
+                return Integer.compare(f2, f1);
+            return Integer.compare(c2.rank().getValue(), c1.rank().getValue());
+        });
+
+        return new HandResult(rank, bestFive);
+    }
+
+    private List<Card> intsToCards(int[] handInts, List<Card> sevenCards) {
+        List<Card> five = new ArrayList<>(5);
         boolean[] used = new boolean[sevenCards.size()];
-        for (int ckInt : bestHandInts) {
-            // Find the original card in sevenCards that matches this ckInt
+        for (int ckInt : handInts) {
             for (int i = 0; i < sevenCards.size(); i++) {
                 Card c = sevenCards.get(i);
                 if (!used[i] && CactusKevCommon.toInt(c) == ckInt) {
                     used[i] = true;
-                    bestFive.add(c);
+                    five.add(c);
                     break;
                 }
             }
         }
-
-        // Sort bestFive for display/kicker comparison (Desc)
-        bestFive.sort(java.util.Collections.reverseOrder());
-
-        return new HandResult(rank, bestFive);
+        return five;
     }
 
     private static void generateLookups() {
