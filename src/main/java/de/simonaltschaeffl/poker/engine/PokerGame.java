@@ -2,8 +2,8 @@ package de.simonaltschaeffl.poker.engine;
 
 import de.simonaltschaeffl.poker.api.GameEventListener;
 import de.simonaltschaeffl.poker.model.*;
+import de.simonaltschaeffl.poker.service.CactusKevEvaluator;
 import de.simonaltschaeffl.poker.service.HandEvaluator;
-import de.simonaltschaeffl.poker.service.StandardHandEvaluator;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,7 +69,7 @@ public class PokerGame {
      * @param config The game configuration.
      */
     public PokerGame(PokerGameConfiguration config) {
-        this(config, new StandardHandEvaluator(), new Deck());
+        this(config, new CactusKevEvaluator(), new Deck());
     }
 
     /**

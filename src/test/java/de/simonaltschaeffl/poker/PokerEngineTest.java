@@ -7,6 +7,10 @@ import de.simonaltschaeffl.poker.service.CactusKevEvaluator;
 import de.simonaltschaeffl.poker.service.StandardHandEvaluator;
 import de.simonaltschaeffl.poker.exception.InvalidActionException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import de.simonaltschaeffl.poker.service.HandEvaluator;
+import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
@@ -62,12 +66,17 @@ public class PokerEngineTest {
 
     // --- Tests ---
 
-    @Test
-    public void testStandardGameFlow() {
-        System.out.println("TEST START: testStandardGameFlow");
+    static Stream<HandEvaluator> evaluators() {
+        return Stream.of(new StandardHandEvaluator(), new CactusKevEvaluator());
+    }
+
+    @ParameterizedTest
+    @MethodSource("evaluators")
+    public void testStandardGameFlow(HandEvaluator evaluator) {
+        System.out.println("TEST START: testStandardGameFlow with " + evaluator.getClass().getSimpleName());
         StackedDeck deck = new StackedDeck();
         PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
-        PokerGame game = new PokerGame(config, new StandardHandEvaluator(), deck);
+        PokerGame game = new PokerGame(config, evaluator, deck);
         System.out.println("Setup: Blinds 10/20. Players P1, P2.");
 
         TestPlayer p1 = new TestPlayer("p1", "Alice", 1000);
@@ -142,9 +151,10 @@ public class PokerEngineTest {
         System.out.println("TEST PASSED: testStandardGameFlow\n--------------------------------------------------");
     }
 
-    @Test
-    public void testSidePots() {
-        System.out.println("TEST START: testSidePots");
+    @ParameterizedTest
+    @MethodSource("evaluators")
+    public void testSidePots(HandEvaluator evaluator) {
+        System.out.println("TEST START: testSidePots with " + evaluator.getClass().getSimpleName());
         // 3 Players. P1(100), P2(200), P3(500).
         // P1 All-in (100). P2 All-in (200). P3 Calls (200).
         // Pot Structure:
@@ -157,7 +167,7 @@ public class PokerEngineTest {
         // immediately.
         StackedDeck deck = new StackedDeck();
         PokerGameConfiguration config2 = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
-        PokerGame game = new PokerGame(config2, new StandardHandEvaluator(), deck);
+        PokerGame game = new PokerGame(config2, evaluator, deck);
 
         TestPlayer p1 = new TestPlayer("p1", "Shorty", 100);
         TestPlayer p2 = new TestPlayer("p2", "Mid", 200);
@@ -343,12 +353,13 @@ public class PokerEngineTest {
         return cards;
     }
 
-    @Test
-    public void testMinRaiseAndReRaise() {
-        System.out.println("TEST START: testMinRaiseAndReRaise");
+    @ParameterizedTest
+    @MethodSource("evaluators")
+    public void testMinRaiseAndReRaise(HandEvaluator evaluator) {
+        System.out.println("TEST START: testMinRaiseAndReRaise with " + evaluator.getClass().getSimpleName());
         // P1, P2. Blinds 10/20.
         PokerGameConfiguration config = new PokerGameConfiguration.Builder().smallBlind(10).bigBlind(20).build();
-        PokerGame game = new PokerGame(config, new StandardHandEvaluator(), new StackedDeck());
+        PokerGame game = new PokerGame(config, evaluator, new StackedDeck());
         TestPlayer p1 = new TestPlayer("p1", "A", 1000);
         TestPlayer p2 = new TestPlayer("p2", "B", 1000);
         game.join(p1);
