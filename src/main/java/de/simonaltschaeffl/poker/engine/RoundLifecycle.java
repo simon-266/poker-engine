@@ -57,6 +57,7 @@ class RoundLifecycle {
         context.gameState().clearBoard();
         context.gameState().getPot().reset();
         context.gameState().setPhase(GameState.GamePhase.PRE_FLOP);
+        context.gameState().setCurrentMinRaiseDelta(context.bigBlind());
 
         // 2. Deal Hole Cards
         for (Player p : context.gameState().getPlayers()) {
@@ -143,18 +144,21 @@ class RoundLifecycle {
                 context.gameState().addToBoard(context.deck().deal().orElseThrow());
                 context.gameState().addToBoard(context.deck().deal().orElseThrow());
                 context.gameState().addToBoard(context.deck().deal().orElseThrow());
+                context.gameState().setCurrentMinRaiseDelta(context.bigBlind());
                 notifyRoundStarted("FLOP");
                 checkAutoAdvance();
             }
             case FLOP -> {
                 context.gameState().setPhase(GameState.GamePhase.TURN);
                 context.gameState().addToBoard(context.deck().deal().orElseThrow());
+                context.gameState().setCurrentMinRaiseDelta(context.bigBlind());
                 notifyRoundStarted("TURN");
                 checkAutoAdvance();
             }
             case TURN -> {
                 context.gameState().setPhase(GameState.GamePhase.RIVER);
                 context.gameState().addToBoard(context.deck().deal().orElseThrow());
+                context.gameState().setCurrentMinRaiseDelta(context.bigBlind());
                 notifyRoundStarted("RIVER");
                 checkAutoAdvance();
             }

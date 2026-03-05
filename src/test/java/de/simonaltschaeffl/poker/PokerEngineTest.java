@@ -368,16 +368,20 @@ public class PokerEngineTest {
 
         // Preflop: P1(SB) 10, P2(BB) 20. Action P1.
         // Min raise is usually Big Blind (20), or previous raise amount.
-        // P1 Raises to 40 (Min valid raise: Call 20 + Raise 20 = 40).
-        game.performAction("p1", ActionType.RAISE, 40);
+        // P1 Raises to 60 (Min valid raise: Call 20 + Raise 20 = 40).
+        // Let's test a larger raise to 60 to set a new delta (60 - 20 = 40).
+        game.performAction("p1", ActionType.RAISE, 60);
 
-        // Action P2. Pot is 10+40 = 50. P2 put 20. Needs 20 to call.
-        // P2 Re-raises. Min raise is +20. Total 60.
-        // Let's try invalid raise (under min).
+        // Action P2. Pot is 10+60 = 70. P2 put 20. Needs 40 to call.
+        // Highest bet = 60. Min raise delta is now 40.
+        // So P2's min re-raise must be to 60 + 40 = 100.
+
+        // Let's try invalid re-raise (under min, say 60 + 20 = 80).
         assertThrows(InvalidActionException.class, () -> {
-            game.performAction("p2", ActionType.RAISE, 50); // Raise to 50 (Increase by 10 only) - should fail
+            game.performAction("p2", ActionType.RAISE, 80); // Should fail
         });
 
+        // Try exactly the minimum re-raise
         game.performAction("p2", ActionType.RAISE, 100); // Valid re-raise
         assertEquals(100, p2.getCurrentBet());
         System.out.println("Verified: Valid Re-raise accepted.");

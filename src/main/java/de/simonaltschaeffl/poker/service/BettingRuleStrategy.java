@@ -29,7 +29,7 @@ public interface BettingRuleStrategy {
      * @param player          The acting player.
      * @param amount          The target total bet amount the player wants to reach.
      * @param highestRoundBet The highest bet currently placed in this round.
-     * @param bigBlind        The big blind amount.
+     * @param minRaiseDelta   The current minimum raise delta.
      * @param potTotal        The current total pot size (required for Pot-Limit
      *                        calculations).
      * @throws de.simonaltschaeffl.poker.exception.InvalidActionException if the
@@ -37,5 +37,5 @@ public interface BettingRuleStrategy {
      *                                                                    amount is
      *                                                                    illegal.
      */
-    void validateRaise(Player player, int amount, int highestRoundBet, int bigBlind, int potTotal);
+    void validateRaise(Player player, int amount, int highestRoundBet, int minRaiseDelta, int potTotal);
 }

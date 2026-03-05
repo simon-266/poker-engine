@@ -21,6 +21,7 @@ public class GameState {
     @NotNull
     private GamePhase phase;
     private long currentTurnStartTime;
+    private int currentMinRaiseDelta;
 
     private final java.util.Set<String> actedPlayers;
 
@@ -115,5 +116,13 @@ public class GameState {
 
     public void setCurrentTurnStartTime(long currentTurnStartTime) {
         this.currentTurnStartTime = currentTurnStartTime;
+    }
+
+    public int getCurrentMinRaiseDelta() {
+        return currentMinRaiseDelta;
+    }
+
+    public void setCurrentMinRaiseDelta(int currentMinRaiseDelta) {
+        this.currentMinRaiseDelta = currentMinRaiseDelta;
     }
 }

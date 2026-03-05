@@ -100,7 +100,8 @@ class RuleEngine {
             }
             case RAISE -> {
                 int potTotal = gameState.getPot().getTotal();
-                bettingRuleStrategy.validateRaise(player, amount, highestBet, bigBlind, potTotal);
+                bettingRuleStrategy.validateRaise(player, amount, highestBet, gameState.getCurrentMinRaiseDelta(),
+                        potTotal);
 
                 int toAdd = amount - player.getCurrentBet();
                 if (toAdd > player.getChips()) {

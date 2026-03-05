@@ -44,6 +44,7 @@ class ActionHandler {
     public void executeAction(Player player, ActionType type, int amount, GameState gameState) {
         int balanceBefore = player.getChips();
         int potTotalBefore = gameState.getPot().getTotal();
+        int highestBetBefore = ruleEngine.getHighestRoundBet(gameState);
 
         // Execution Logic
         switch (type) {
@@ -74,12 +75,23 @@ class ActionHandler {
                 int toAdd = amount - player.getCurrentBet();
                 player.bet(toAdd);
                 gameState.getPot().add(player, toAdd);
+
+                int delta = amount - highestBetBefore;
+                if (delta > gameState.getCurrentMinRaiseDelta()) {
+                    gameState.setCurrentMinRaiseDelta(delta);
+                }
             }
             case ALL_IN -> {
                 amount = player.getChips();
                 player.bet(amount);
                 gameState.getPot().add(player, amount);
                 player.setStatus(PlayerStatus.ALL_IN);
+
+                int totalBet = player.getCurrentBet(); // player.bet already adds amount to currentBet internally
+                int delta = totalBet - highestBetBefore;
+                if (delta > gameState.getCurrentMinRaiseDelta()) {
+                    gameState.setCurrentMinRaiseDelta(delta);
+                }
             }
             case SMALL_BLIND, BIG_BLIND -> throw new InvalidActionException("Blinds should be posted via postBlind");
         }

@@ -37,10 +37,11 @@ public class NoLimitBettingStrategy implements BettingRuleStrategy {
     }
 
     @Override
-    public void validateRaise(Player player, int amount, int highestRoundBet, int bigBlind, int potTotal) {
-        if (amount < highestRoundBet + bigBlind) {
-            throw new InvalidActionException("Raise must be at least the previous highest bet plus the big blind ("
-                    + (highestRoundBet + bigBlind) + ")");
+    public void validateRaise(Player player, int amount, int highestRoundBet, int minRaiseDelta, int potTotal) {
+        if (amount < highestRoundBet + minRaiseDelta) {
+            throw new InvalidActionException(
+                    "Raise must be at least the previous highest bet plus the minimum raise delta ("
+                            + (highestRoundBet + minRaiseDelta) + ")");
         }
     }
 }
